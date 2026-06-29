@@ -125,35 +125,19 @@ class PlayerActivity : ComponentActivity() {
                 }
 
                 PlayerScreen(
+                    fileName = playlistState.currentUri
+                        ?.substringAfterLast('/')
+                        ?.substringBeforeLast('.')
+                        ?: "Unknown",
                     playerState = playerState,
-                    playlistState = playlistState,
                     surfaceView = surfaceView,
                     onTogglePlay = { viewModel.togglePlay() },
                     onSeek = { viewModel.seekTo(it) },
-                    onSeekRelative = { viewModel.seekRelative(it) },
                     onOpenFile = { filePickerLauncher.launch(arrayOf("video/*")) },
-                    onSpeedChange = { viewModel.setSpeed(it) },
-                    onSpeedOverride = { 
-                        preOverrideSpeed = playerState.speed
-                        viewModel.setSpeed(it) 
-                    },
-                    onSpeedRestore = { viewModel.setSpeed(preOverrideSpeed) },
-                    onSelectAudioTrack = { viewModel.setAudioTrack(it) },
-                    onSelectSubtitleTrack = { viewModel.setSubtitleTrack(it) },
-                    onSubtitleAppearance = { size, position ->
-                        viewModel.setSubtitleAppearance(size, position)
-                    },
-                    onSubtitleReset = { viewModel.resetSubtitleAppearance() },
-                    // Auto-subtitle
-                    onAutoSelectSubtitle = {
-                        viewModel.autoSelectSubtitle(playerState.subtitleTracks)
-                    },
-                    // Zoom / pan
-                    onZoomChange = { viewModel.setVideoZoom(it) },
-                    onPanChange = { x, y -> viewModel.setVideoPan(x, y) },
-                    onDecodeModeChange = { viewModel.setDecodeMode(it) },
-                    onAspectRatioChange = { viewModel.setAspectRatio(it) },
-                    onSettingsClick = { showSettings = true }
+                    onSelectAudioTrack = { /* wired in later prompt */ },
+                    onSelectSubtitleTrack = { /* wired in later prompt */ },
+                    onCycleDecodeMode = { /* wired in later prompt */ },
+                    onMoreOptions = { showSettings = true },
                 )
 
                 if (showSettings) {
