@@ -18,6 +18,9 @@ import kotlinx.coroutines.delay
 import com.tapman104.mpvplayer.player.dialogs.AudioTrackDialog
 import com.tapman104.mpvplayer.player.dialogs.SubtitleTrackDialog
 import com.tapman104.mpvplayer.player.dialogs.AspectRatioDialog
+import com.tapman104.mpvplayer.player.controls.PlayerTopBar
+import com.tapman104.mpvplayer.player.controls.PlayerBottomControls
+import com.tapman104.mpvplayer.player.controls.PlayerQuickActions
 
 
 @Composable

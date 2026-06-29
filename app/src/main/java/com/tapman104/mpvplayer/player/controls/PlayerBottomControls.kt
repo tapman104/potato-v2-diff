@@ -1,4 +1,4 @@
-package com.tapman104.mpvplayer.player.playback
+package com.tapman104.mpvplayer.player.controls
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

@@ -1,4 +1,4 @@
-package com.tapman104.mpvplayer.player.playback
+package com.tapman104.mpvplayer.player.controls
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack

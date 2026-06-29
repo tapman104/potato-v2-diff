@@ -1,4 +1,4 @@
-package com.tapman104.mpvplayer.player.playback
+package com.tapman104.mpvplayer.player.controls
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
