@@ -24,6 +24,10 @@ import com.tapman104.mpvplayer.util.UriResolver
 import com.tapman104.mpvplayer.player.viewmodel.PlayerViewModel
 import com.tapman104.mpvplayer.player.viewmodel.PlayerViewModelFactory
 import com.tapman104.mpvplayer.core.preferences.UserPreferencesRepository
+import com.tapman104.mpvplayer.player.dialogs.AudioTrackDialog
+import com.tapman104.mpvplayer.player.dialogs.SubtitleTrackDialog
+import com.tapman104.mpvplayer.player.dialogs.AspectRatioDialog
+
 
 class PlayerActivity : ComponentActivity() {
 

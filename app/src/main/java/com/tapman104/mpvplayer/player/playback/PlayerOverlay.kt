@@ -15,6 +15,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tapman104.mpvplayer.player.state.PlayerState
 import kotlinx.coroutines.delay
+import com.tapman104.mpvplayer.player.dialogs.AudioTrackDialog
+import com.tapman104.mpvplayer.player.dialogs.SubtitleTrackDialog
+import com.tapman104.mpvplayer.player.dialogs.AspectRatioDialog
+
 
 @Composable
 fun PlayerOverlay(
