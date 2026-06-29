@@ -1,8 +1,11 @@
 package com.tapman104.mpvplayer.player.playback
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,13 +14,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -87,8 +96,9 @@ fun PlayerOverlay(
         }
 
         // ── SECTION 2: QUICK ACTIONS BAR ──
-        // SCAFFOLD ONLY — leave this as an empty placeholder Box
-        // Phase 2 will fill this in entirely
+        // State: whether the action buttons are expanded or collapsed
+        var quickActionsExpanded by remember { mutableStateOf(true) }
+
         AnimatedVisibility(
             visible = controlsVisible,
             enter = fadeIn(tween(200)),
@@ -97,12 +107,112 @@ fun PlayerOverlay(
                 .align(Alignment.TopStart)
                 .padding(top = 64.dp, start = 8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .height(56.dp)
-                    .wrapContentWidth()
-            )
-            // TODO: Quick Actions Bar — Phase 2
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                // The 4 action buttons — slide in/out horizontally
+                AnimatedVisibility(
+                    visible = quickActionsExpanded,
+                    enter = fadeIn(tween(180)) + expandHorizontally(
+                        animationSpec = tween(180),
+                        expandFrom = Alignment.End
+                    ),
+                    exit = fadeOut(tween(180)) + shrinkHorizontally(
+                        animationSpec = tween(180),
+                        shrinkTowards = Alignment.End
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
+                        // Audio track button
+                        FilledTonalIconButton(
+                            onClick = onSelectAudioTrack,
+                            modifier = Modifier.size(48.dp),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = Color.Black.copy(alpha = 0.55f),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon(
+                                Icons.Filled.Audiotrack,
+                                contentDescription = "Audio track",
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        // Subtitle track button
+                        FilledTonalIconButton(
+                            onClick = onSelectSubtitleTrack,
+                            modifier = Modifier.size(48.dp),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = Color.Black.copy(alpha = 0.55f),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon(
+                                Icons.Filled.ClosedCaption,
+                                contentDescription = "Subtitle track",
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        // Decode mode button (text label: HW / HW+ / SW)
+                        FilledTonalIconButton(
+                            onClick = onCycleDecodeMode,
+                            modifier = Modifier.size(48.dp),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = Color.Black.copy(alpha = 0.55f),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text(
+                                text = "HW",   // static placeholder — wire to playerState.decodeMode in later prompt
+                                fontSize = 11.sp,
+                                color = Color.White
+                            )
+                        }
+
+                        // More/Settings button
+                        FilledTonalIconButton(
+                            onClick = onMoreOptions,
+                            modifier = Modifier.size(48.dp),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = Color.Black.copy(alpha = 0.55f),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon(
+                                Icons.Filled.Settings,
+                                contentDescription = "More options",
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Collapse / expand arrow button — always visible
+                FilledTonalIconButton(
+                    onClick = { quickActionsExpanded = !quickActionsExpanded },
+                    modifier = Modifier.size(48.dp),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = Color.Black.copy(alpha = 0.55f),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (quickActionsExpanded)
+                            Icons.Filled.ChevronLeft
+                        else
+                            Icons.Filled.ChevronRight,
+                        contentDescription = if (quickActionsExpanded) "Collapse" else "Expand",
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
         }
 
         // ── SECTION 3: BOTTOM CONTROLS ──
