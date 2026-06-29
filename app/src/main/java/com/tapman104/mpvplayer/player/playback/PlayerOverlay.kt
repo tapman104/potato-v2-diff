@@ -4,8 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
@@ -22,6 +20,7 @@ import com.tapman104.mpvplayer.player.dialogs.AspectRatioDialog
 import com.tapman104.mpvplayer.player.controls.PlayerTopBar
 import com.tapman104.mpvplayer.player.controls.PlayerBottomControls
 import com.tapman104.mpvplayer.player.controls.PlayerQuickActions
+import com.tapman104.mpvplayer.player.gesture.GestureHandler
 
 
 @Composable
@@ -31,6 +30,10 @@ fun PlayerOverlay(
     onOpenFile: () -> Unit,
     onTogglePlay: () -> Unit,
     onSeek: (Long) -> Unit,
+    onSeekForward: (Long) -> Unit,
+    onSeekBackward: (Long) -> Unit,
+    onSpeedOverride: (Float) -> Unit,
+    onSpeedRestore: () -> Unit,
     onSelectAudioTrack: () -> Unit,
     onSelectSubtitleTrack: () -> Unit,
     onCycleDecodeMode: (DecodeMode) -> Unit,
@@ -46,14 +49,18 @@ fun PlayerOverlay(
         }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { controlsVisible = true }
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+
+        // ── GESTURE HANDLER (above surface, below controls) ───────────────────
+        GestureHandler(
+            onSeekForward    = onSeekForward,
+            onSeekBackward   = onSeekBackward,
+            onToggleControls = { controlsVisible = true },
+            onSpeedOverride  = onSpeedOverride,
+            onSpeedRestore   = onSpeedRestore,
+            modifier         = Modifier.fillMaxSize(),
+        )
+
         // ── TOP BAR ──────────────────────────────────────────────────────────
         AnimatedVisibility(
             visible = controlsVisible,

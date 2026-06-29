@@ -99,6 +99,9 @@ class PlayerActivity : ComponentActivity() {
                 var preOverrideSpeed by remember { mutableFloatStateOf(1f) }
                 var showSettings by remember { mutableStateOf(false) }
 
+                // Capture current speed so we can restore after long-press override
+                val currentSpeed = playerState.speed
+
                 // Save position whenever playback pauses (isPlaying flips to false)
                 val isPlaying = playerState.isPlaying
                 LaunchedEffect(isPlaying) {
@@ -138,6 +141,15 @@ class PlayerActivity : ComponentActivity() {
                     onTogglePlay = { viewModel.togglePlay() },
                     onSeek = { viewModel.seekTo(it) },
                     onOpenFile = { filePickerLauncher.launch(arrayOf("video/*")) },
+                    onSeekForward  = { offsetMs -> viewModel.seekRelative(offsetMs) },
+                    onSeekBackward = { offsetMs -> viewModel.seekRelative(-offsetMs) },
+                    onSpeedOverride = { speed ->
+                        preOverrideSpeed = currentSpeed
+                        viewModel.setSpeed(speed)
+                    },
+                    onSpeedRestore = {
+                        viewModel.setSpeed(preOverrideSpeed)
+                    },
                     onSelectAudioTrack = { /* wired in later prompt */ },
                     onSelectSubtitleTrack = { /* wired in later prompt */ },
                     onCycleDecodeMode = { newMode -> viewModel.setDecodeMode(newMode) },
