@@ -1,5 +1,6 @@
 package com.tapman104.mpvplayer.player.dialogs
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -15,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tapman104.mpvplayer.player.model.AudioTrack
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioTrackDialog(
     tracks: List<AudioTrack>,
@@ -22,32 +25,56 @@ fun AudioTrackDialog(
     onSelectTrack: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    val sheetState = rememberModalBottomSheetState(true)
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
         containerColor = Color(0xFF1A1A1A),
-        shape = RoundedCornerShape(20.dp),
-        tonalElevation = 0.dp,
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
-            }
-        },
-        title = {
+        scrimColor = Color.Black.copy(alpha = 0.5f),
+        dragHandle = null
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Drag handle
+            Box(
+                modifier = Modifier
+                    .align(CenterHorizontally)
+                    .padding(top = 12.dp, bottom = 8.dp)
+                    .size(width = 40.dp, height = 4.dp)
+                    .background(
+                        color = Color.White.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
+
+            // Title row
             Text(
                 text = "Audio Track",
-                color = Color.White,
                 fontSize = 17.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                color = Color.White,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
             )
-        },
-        text = {
+
+            HorizontalDivider(
+                color = Color.White.copy(alpha = 0.08f),
+                thickness = 0.5.dp
+            )
+
             if (tracks.isEmpty()) {
-                Text(
-                    text = "No audio tracks available",
-                    fontSize = 14.sp,
-                    color = Color.White.copy(alpha = 0.5f)
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No audio tracks available",
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 14.sp
+                    )
+                }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     itemsIndexed(tracks) { index, track ->
@@ -69,8 +96,10 @@ fun AudioTrackDialog(
                     }
                 }
             }
+
+            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
         }
-    )
+    }
 }
 
 @Composable
@@ -84,7 +113,7 @@ private fun TrackRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
+            .padding(vertical = 14.dp, horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -92,8 +121,7 @@ private fun TrackRow(
             Text(
                 text = title,
                 color = if (isSelected) Color(0xFF8B5CF6) else Color.White,
-                fontSize = 15.sp,
-                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
+                fontSize = 15.sp
             )
             Text(
                 text = "[$lang]",
