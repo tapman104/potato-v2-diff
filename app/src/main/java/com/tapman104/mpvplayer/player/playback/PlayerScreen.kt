@@ -1,4 +1,4 @@
-﻿package com.tapman104.mpvplayer.player.playback
+package com.tapman104.mpvplayer.player.playback
 
 import android.view.SurfaceView
 import androidx.compose.foundation.background
@@ -23,8 +23,9 @@ fun PlayerScreen(
     onSeekBackward: (Long) -> Unit = {},
     onSpeedOverride: (Float) -> Unit = {},
     onSpeedRestore: () -> Unit = {},
-    onSelectAudioTrack: () -> Unit = {},
-    onSelectSubtitleTrack: () -> Unit = {},
+    onAudioTrackSelected: (Int) -> Unit = {},
+    onSubtitleTrackSelected: (Int) -> Unit = {},
+    onDisableSubtitles: () -> Unit = {},
     onCycleDecodeMode: (DecodeMode) -> Unit = {},
     onMoreOptions: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -55,8 +56,9 @@ fun PlayerScreen(
             onSeekBackward = onSeekBackward,
             onSpeedOverride = onSpeedOverride,
             onSpeedRestore = onSpeedRestore,
-            onSelectAudioTrack = onSelectAudioTrack,
-            onSelectSubtitleTrack = onSelectSubtitleTrack,
+            onAudioTrackSelected = onAudioTrackSelected,
+            onSubtitleTrackSelected = onSubtitleTrackSelected,
+            onDisableSubtitles = onDisableSubtitles,
             onCycleDecodeMode = onCycleDecodeMode,
             onMoreOptions = onMoreOptions,
             modifier = Modifier.fillMaxSize()

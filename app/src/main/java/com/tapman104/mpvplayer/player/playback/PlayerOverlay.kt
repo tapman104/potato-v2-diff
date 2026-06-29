@@ -16,7 +16,6 @@ import com.tapman104.mpvplayer.player.model.DecodeMode
 import kotlinx.coroutines.delay
 import com.tapman104.mpvplayer.player.dialogs.AudioTrackDialog
 import com.tapman104.mpvplayer.player.dialogs.SubtitleTrackDialog
-import com.tapman104.mpvplayer.player.dialogs.AspectRatioDialog
 import com.tapman104.mpvplayer.player.controls.PlayerTopBar
 import com.tapman104.mpvplayer.player.controls.PlayerBottomControls
 import com.tapman104.mpvplayer.player.controls.PlayerQuickActions
@@ -34,13 +33,16 @@ fun PlayerOverlay(
     onSeekBackward: (Long) -> Unit,
     onSpeedOverride: (Float) -> Unit,
     onSpeedRestore: () -> Unit,
-    onSelectAudioTrack: () -> Unit,
-    onSelectSubtitleTrack: () -> Unit,
+    onAudioTrackSelected: (Int) -> Unit,
+    onSubtitleTrackSelected: (Int) -> Unit,
+    onDisableSubtitles: () -> Unit,
     onCycleDecodeMode: (DecodeMode) -> Unit,
     onMoreOptions: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var controlsVisible by remember { mutableStateOf(true) }
+    var showAudioDialog by remember { mutableStateOf(false) }
+    var showSubtitleDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(controlsVisible) {
         if (controlsVisible) {
@@ -86,8 +88,8 @@ fun PlayerOverlay(
         ) {
             PlayerQuickActions(
                 decodeMode = playerState.decodeMode,
-                onSelectAudioTrack = onSelectAudioTrack,
-                onSelectSubtitleTrack = onSelectSubtitleTrack,
+                onSelectAudioTrack = { showAudioDialog = true },
+                onSelectSubtitleTrack = { showSubtitleDialog = true },
                 onCycleDecodeMode = {
                     onCycleDecodeMode(
                         when (playerState.decodeMode) {
@@ -122,6 +124,39 @@ fun PlayerOverlay(
             CircularProgressIndicator(
                 color = Color(0xFF8B5CF6),
                 modifier = Modifier.align(Alignment.Center)
+            )
+        }
+
+        // ── DIALOGS ───────────────────────────────────────────────────────────
+        if (showAudioDialog) {
+            AudioTrackDialog(
+                tracks = playerState.audioTracks,
+                selectedTrackId = playerState.selectedAudioTrackId,
+                onSelectTrack = {
+                    onAudioTrackSelected(it)
+                    showAudioDialog = false
+                },
+                onDismiss = { showAudioDialog = false }
+            )
+        }
+
+        if (showSubtitleDialog) {
+            SubtitleTrackDialog(
+                tracks = playerState.subtitleTracks,
+                selectedTrackId = playerState.selectedSubtitleTrackId,
+                onSelectTrack = {
+                    onSubtitleTrackSelected(it)
+                    showSubtitleDialog = false
+                },
+                onDisableSubtitles = {
+                    onDisableSubtitles()
+                    showSubtitleDialog = false
+                },
+                onAppearanceClick = {
+                    showSubtitleDialog = false
+                    onMoreOptions()
+                },
+                onDismiss = { showSubtitleDialog = false }
             )
         }
     }
