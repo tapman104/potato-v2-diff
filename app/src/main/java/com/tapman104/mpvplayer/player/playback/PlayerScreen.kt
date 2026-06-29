@@ -28,6 +28,9 @@ fun PlayerScreen(
     onDisableSubtitles: () -> Unit = {},
     onCycleDecodeMode: (DecodeMode) -> Unit = {},
     onMoreOptions: () -> Unit = {},
+    onSubtitleSizeChange: (Float) -> Unit = {},
+    onSubtitlePositionChange: (Float) -> Unit = {},
+    onSubtitleAppearanceReset: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -61,6 +64,9 @@ fun PlayerScreen(
             onDisableSubtitles = onDisableSubtitles,
             onCycleDecodeMode = onCycleDecodeMode,
             onMoreOptions = onMoreOptions,
+            onSubtitleSizeChange = onSubtitleSizeChange,
+            onSubtitlePositionChange = onSubtitlePositionChange,
+            onSubtitleAppearanceReset = onSubtitleAppearanceReset,
             modifier = Modifier.fillMaxSize()
         )
     }

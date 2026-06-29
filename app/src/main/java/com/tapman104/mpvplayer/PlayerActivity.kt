@@ -152,6 +152,9 @@ class PlayerActivity : ComponentActivity() {
                     onDisableSubtitles = { viewModel.setSubtitleTrack(-1) },
                     onCycleDecodeMode = { newMode -> viewModel.setDecodeMode(newMode) },
                     onMoreOptions = { showSettings = true },
+                    onSubtitleSizeChange = { viewModel.setSubtitleSize(it) },
+                    onSubtitlePositionChange = { viewModel.setSubtitlePosition(it) },
+                    onSubtitleAppearanceReset = { viewModel.resetSubtitleAppearance() },
                 )
 
                 if (showSettings) {

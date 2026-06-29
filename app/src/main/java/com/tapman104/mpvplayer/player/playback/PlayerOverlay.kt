@@ -16,6 +16,7 @@ import com.tapman104.mpvplayer.player.model.DecodeMode
 import kotlinx.coroutines.delay
 import com.tapman104.mpvplayer.player.dialogs.AudioTrackDialog
 import com.tapman104.mpvplayer.player.dialogs.SubtitleTrackDialog
+import com.tapman104.mpvplayer.player.dialog.SubtitleAppearanceDialog
 import com.tapman104.mpvplayer.player.controls.PlayerTopBar
 import com.tapman104.mpvplayer.player.controls.PlayerBottomControls
 import com.tapman104.mpvplayer.player.controls.PlayerQuickActions
@@ -38,14 +39,18 @@ fun PlayerOverlay(
     onDisableSubtitles: () -> Unit,
     onCycleDecodeMode: (DecodeMode) -> Unit,
     onMoreOptions: () -> Unit,
+    onSubtitleSizeChange: (Float) -> Unit,
+    onSubtitlePositionChange: (Float) -> Unit,
+    onSubtitleAppearanceReset: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var controlsVisible by remember { mutableStateOf(true) }
     var showAudioDialog by remember { mutableStateOf(false) }
     var showSubtitleDialog by remember { mutableStateOf(false) }
+    var showSubtitleAppearanceDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(controlsVisible) {
-        if (controlsVisible) {
+    LaunchedEffect(controlsVisible, showAudioDialog, showSubtitleDialog, showSubtitleAppearanceDialog) {
+        if (controlsVisible && !showAudioDialog && !showSubtitleDialog && !showSubtitleAppearanceDialog) {
             delay(3000L)
             controlsVisible = false
         }
@@ -57,7 +62,7 @@ fun PlayerOverlay(
         GestureHandler(
             onSeekForward    = onSeekForward,
             onSeekBackward   = onSeekBackward,
-            onToggleControls = { controlsVisible = true },
+            onToggleControls = { controlsVisible = !controlsVisible },
             onSpeedOverride  = onSpeedOverride,
             onSpeedRestore   = onSpeedRestore,
             modifier         = Modifier.fillMaxSize(),
@@ -154,9 +159,23 @@ fun PlayerOverlay(
                 },
                 onAppearanceClick = {
                     showSubtitleDialog = false
-                    onMoreOptions()
+                    showSubtitleAppearanceDialog = true
                 },
                 onDismiss = { showSubtitleDialog = false }
+            )
+        }
+
+        if (showSubtitleAppearanceDialog) {
+            SubtitleAppearanceDialog(
+                initialSize = playerState.subtitleSize,
+                initialPosition = playerState.subtitlePosition,
+                onApply = { size, position ->
+                    onSubtitleSizeChange(size)
+                    onSubtitlePositionChange(position)
+                    showSubtitleAppearanceDialog = false
+                },
+                onDismiss = { showSubtitleAppearanceDialog = false },
+                onReset = { onSubtitleAppearanceReset() }
             )
         }
     }
