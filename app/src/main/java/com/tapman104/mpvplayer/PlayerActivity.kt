@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tapman104.mpvplayer.player.playback.PlayerScreen
 import com.tapman104.mpvplayer.settings.SettingsScreen
 import com.tapman104.mpvplayer.ui.theme.MpvPlayerTheme
+import com.tapman104.mpvplayer.util.UriResolver
 import com.tapman104.mpvplayer.player.viewmodel.PlayerViewModel
 import com.tapman104.mpvplayer.player.viewmodel.PlayerViewModelFactory
 import com.tapman104.mpvplayer.core.preferences.UserPreferencesRepository
@@ -126,8 +127,7 @@ class PlayerActivity : ComponentActivity() {
 
                 PlayerScreen(
                     fileName = playlistState.currentUri
-                        ?.substringAfterLast('/')
-                        ?.substringBeforeLast('.')
+                        ?.let { UriResolver.getDisplayName(applicationContext, Uri.parse(it)) }
                         ?: "Unknown",
                     playerState = playerState,
                     surfaceView = surfaceView,
