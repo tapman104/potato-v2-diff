@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tapman104.mpvplayer.player.state.PlayerState
+import com.tapman104.mpvplayer.player.model.DecodeMode
 import kotlinx.coroutines.delay
 import com.tapman104.mpvplayer.player.dialogs.AudioTrackDialog
 import com.tapman104.mpvplayer.player.dialogs.SubtitleTrackDialog
@@ -32,7 +33,7 @@ fun PlayerOverlay(
     onSeek: (Long) -> Unit,
     onSelectAudioTrack: () -> Unit,
     onSelectSubtitleTrack: () -> Unit,
-    onCycleDecodeMode: () -> Unit,
+    onCycleDecodeMode: (DecodeMode) -> Unit,
     onMoreOptions: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -80,7 +81,15 @@ fun PlayerOverlay(
                 decodeMode = playerState.decodeMode,
                 onSelectAudioTrack = onSelectAudioTrack,
                 onSelectSubtitleTrack = onSelectSubtitleTrack,
-                onCycleDecodeMode = onCycleDecodeMode,
+                onCycleDecodeMode = {
+                    onCycleDecodeMode(
+                        when (playerState.decodeMode) {
+                            DecodeMode.HW     -> DecodeMode.HWPlus
+                            DecodeMode.HWPlus -> DecodeMode.SW
+                            DecodeMode.SW     -> DecodeMode.HW
+                        }
+                    )
+                },
                 onMoreOptions = onMoreOptions
             )
         }

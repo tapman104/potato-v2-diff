@@ -140,7 +140,7 @@ class PlayerActivity : ComponentActivity() {
                     onOpenFile = { filePickerLauncher.launch(arrayOf("video/*")) },
                     onSelectAudioTrack = { /* wired in later prompt */ },
                     onSelectSubtitleTrack = { /* wired in later prompt */ },
-                    onCycleDecodeMode = { /* wired in later prompt */ },
+                    onCycleDecodeMode = { newMode -> viewModel.setDecodeMode(newMode) },
                     onMoreOptions = { showSettings = true },
                 )
 

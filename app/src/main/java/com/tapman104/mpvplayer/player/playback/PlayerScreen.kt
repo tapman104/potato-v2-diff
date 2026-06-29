@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
 import com.tapman104.mpvplayer.player.state.PlayerState
+import com.tapman104.mpvplayer.player.model.DecodeMode
 
 @Composable
 fun PlayerScreen(
@@ -20,7 +21,7 @@ fun PlayerScreen(
     fileName: String = "Unknown",
     onSelectAudioTrack: () -> Unit = {},
     onSelectSubtitleTrack: () -> Unit = {},
-    onCycleDecodeMode: () -> Unit = {},
+    onCycleDecodeMode: (DecodeMode) -> Unit = {},
     onMoreOptions: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
