@@ -1,4 +1,4 @@
-﻿package com.tapman104.mpvplayer.player.gesture
+package com.tapman104.mpvplayer.player.gesture
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -29,6 +29,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 fun Modifier.doubleTapSeekGesture(
     onSeekForward: () -> Unit,
     onSeekBackward: () -> Unit,
+    onContinueSeek: (isRightHalf: Boolean) -> Unit,
     onToggleControls: () -> Unit,
     onLongPressStart: () -> Unit,
     onLongPressEnd: () -> Unit,
@@ -37,6 +38,7 @@ fun Modifier.doubleTapSeekGesture(
 ): Modifier = composed {
     val currentOnSeekForward    by rememberUpdatedState(onSeekForward)
     val currentOnSeekBackward   by rememberUpdatedState(onSeekBackward)
+    val currentOnContinueSeek   by rememberUpdatedState(onContinueSeek)
     val currentOnToggleControls by rememberUpdatedState(onToggleControls)
     val currentOnLongPressStart by rememberUpdatedState(onLongPressStart)
     val currentOnLongPressEnd   by rememberUpdatedState(onLongPressEnd)
@@ -44,6 +46,10 @@ fun Modifier.doubleTapSeekGesture(
     val currentOnSpeedRestore   by rememberUpdatedState(onSpeedRestore)
 
     pointerInput(Unit) {
+        var continuationActive = false
+        var continuationSide = false
+        var lastContinuationTime = 0L
+
         // awaitEachGesture keeps us in AwaitPointerEventScope for the whole gesture cycle.
         // withTimeout / awaitPointerEvent are members of AwaitPointerEventScope.
         awaitEachGesture {
@@ -55,21 +61,42 @@ fun Modifier.doubleTapSeekGesture(
             if (firstDown.isConsumed) return@awaitEachGesture
 
             val tapPosition = firstDown.position
+            val isRightHalf = tapPosition.x >= size.width / 2f
+            val now = System.currentTimeMillis()
+
+            if (continuationActive && (now - lastContinuationTime) > 650L) {
+                continuationActive = false
+            }
+            if (continuationActive && continuationSide != isRightHalf) {
+                continuationActive = false
+            }
 
             // ── 2. Try long press (500 ms hold) ──────────────────────────────
             var isLongPress = false
+            var aborted = false
             try {
                 withTimeout(500L) {
                     while (true) {
                         val event = awaitPointerEvent(PointerEventPass.Main)
+                        if (event.changes.any { it.isConsumed }) {
+                            aborted = true
+                            break
+                        }
                         if (event.changes.any { change -> !change.pressed }) break
                     }
                 }
             } catch (_: PointerEventTimeoutCancellationException) {
+                // If it timed out, it was held for 500ms without being consumed
                 isLongPress = true
             }
 
+            if (aborted) {
+                continuationActive = false
+                return@awaitEachGesture
+            }
+
             if (isLongPress) {
+                continuationActive = false
                 currentOnLongPressStart()
                 currentOnSpeedOverride(2.0f)
                 // Consume all events until the finger lifts
@@ -83,27 +110,47 @@ fun Modifier.doubleTapSeekGesture(
                 return@awaitEachGesture
             }
 
+            if (continuationActive) {
+                currentOnContinueSeek(isRightHalf)
+                lastContinuationTime = System.currentTimeMillis()
+                return@awaitEachGesture
+            }
+
+            continuationActive = false
             // ── 3. First tap lifted — open a 300 ms window for a second tap ──
-            val isRightHalf = tapPosition.x >= size.width / 2f
             var isDoubleTap = false
 
             try {
                 withTimeout(300L) {
                     while (true) {
                         val event = awaitPointerEvent(PointerEventPass.Main)
+                        if (event.changes.any { it.isConsumed }) {
+                            aborted = true
+                            break
+                        }
                         val secondDown = event.changes.firstOrNull { change ->
                             change.pressed && !change.previousPressed
                         }
                         if (secondDown != null) break
                     }
                 }
-                isDoubleTap = true   // Only reached when second down arrives before timeout
+                if (!aborted) {
+                    isDoubleTap = true   // Only reached when second down arrives before timeout
+                }
             } catch (_: PointerEventTimeoutCancellationException) {
                 // Timeout expired → single tap; isDoubleTap stays false
             }
 
+            if (aborted) {
+                continuationActive = false
+                return@awaitEachGesture
+            }
+
             if (isDoubleTap) {
                 if (isRightHalf) currentOnSeekForward() else currentOnSeekBackward()
+                continuationActive = true
+                continuationSide = isRightHalf
+                lastContinuationTime = System.currentTimeMillis()
             } else {
                 currentOnToggleControls()
             }

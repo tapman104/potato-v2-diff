@@ -187,7 +187,7 @@ fun Modifier.pinchZoomGesture(
 }
 
 @Composable
-private fun PinchZoomIndicator(zoom: Float) {
+fun PinchZoomIndicator(zoom: Float) {
     val percentage = ((2.0.pow(zoom.toDouble())) * 100).roundToInt()
 
     Box(

@@ -72,8 +72,14 @@ fun PlayerOverlay(
     Box(modifier = modifier.fillMaxSize()) {
 
         // ── GESTURE HANDLERS (above surface, below controls) ───────────────────
-        // They must be layered in this order so that volume/brightness consume first:
         GestureHandler(
+            currentPositionMs = playerState.currentPositionMs,
+            durationMs = playerState.durationMs,
+            isPlaying = playerState.isPlaying,
+            onSeekPreview = { _, _ -> },
+            onSeekCommit = onSeek,
+            onPauseForScrub = { if (playerState.isPlaying) onTogglePlay() },
+            onResumeAfterScrub = { if (!playerState.isPlaying) onTogglePlay() },
             onSeekForward    = onSeekForward,
             onSeekBackward   = onSeekBackward,
             onToggleControls = { controlsVisible = !controlsVisible },

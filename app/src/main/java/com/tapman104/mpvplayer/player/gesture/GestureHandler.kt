@@ -2,7 +2,6 @@ package com.tapman104.mpvplayer.player.gesture
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -33,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,12 +43,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RadialGradientShader
-import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tapman104.mpvplayer.util.TimeFormatter
 import kotlinx.coroutines.delay
+import kotlin.math.abs
 
 // ---------------------------------------------------------------------------
 // Seek direction enum
@@ -68,12 +68,21 @@ enum class SeekDirection { Forward, Backward, None }
  */
 @Composable
 fun GestureHandler(
+    currentPositionMs: Long,
+    durationMs: Long,
+    isPlaying: Boolean,
+    onSeekPreview: (Long, Long) -> Unit,
+    onSeekCommit: (Long) -> Unit,
+    onPauseForScrub: () -> Unit,
+    onResumeAfterScrub: () -> Unit,
     onSeekForward: (Long) -> Unit,
     onSeekBackward: (Long) -> Unit,
     onToggleControls: () -> Unit,
     onSpeedOverride: (Float) -> Unit,
     onSpeedRestore: () -> Unit,
     modifier: Modifier = Modifier,
+    currentZoom: Float = 0f,
+    onZoomChange: (Float) -> Unit = {},
 ) {
     // ── State ────────────────────────────────────────────────────────────────
     var seekDirection    by remember { mutableStateOf(SeekDirection.None) }
@@ -84,7 +93,20 @@ fun GestureHandler(
     var labelTrigger     by remember { mutableIntStateOf(0) }
     var isLongPressing   by remember { mutableStateOf(false) }
 
-    // ── Auto-hide timer ──────────────────────────────────────────────────────
+    // ── Local state for horizontal swipe ─────────────────────────────────────
+    var wasPlayingBeforeScrub by remember { mutableStateOf(false) }
+    var showHorizontalSeekIndicator by remember { mutableStateOf(false) }
+    var horizontalSeekTrigger by remember { mutableIntStateOf(0) }
+    var previewPositionMs by remember { mutableStateOf(0L) }
+    var previewDeltaMs by remember { mutableStateOf(0L) }
+
+    // ── Local state for pinch zoom ───────────────────────────────────────────
+    var isZooming by remember { mutableStateOf(false) }
+    var showZoomIndicator by remember { mutableStateOf(false) }
+    var zoomTrigger by remember { mutableIntStateOf(0) }
+    var localZoom by remember { mutableFloatStateOf(currentZoom) }
+
+    // ── Auto-hide timers ─────────────────────────────────────────────────────
     LaunchedEffect(labelTrigger) {
         if (labelTrigger > 0) {
             showSeekIndicator = true
@@ -95,6 +117,30 @@ fun GestureHandler(
             seekDirection = SeekDirection.None
             tapCount      = 0
             lastTapSide   = ""
+        }
+    }
+
+    LaunchedEffect(currentZoom) {
+        if (!isZooming) {
+            localZoom = currentZoom
+        }
+    }
+
+    LaunchedEffect(zoomTrigger, isZooming) {
+        if (isZooming) {
+            showZoomIndicator = true
+        } else if (zoomTrigger > 0) {
+            showZoomIndicator = true
+            delay(700L)
+            showZoomIndicator = false
+        }
+    }
+
+    LaunchedEffect(horizontalSeekTrigger) {
+        if (horizontalSeekTrigger > 0) {
+            showHorizontalSeekIndicator = true
+            delay(700L)
+            showHorizontalSeekIndicator = false
         }
     }
 
@@ -138,9 +184,46 @@ fun GestureHandler(
     Box(
         modifier = modifier
             .fillMaxSize()
+            .pinchZoomGesture(
+                currentZoom = localZoom,
+                onZoomUpdate = { newZoom ->
+                    localZoom = newZoom
+                    onZoomChange(newZoom)
+                },
+                onZoomStart = { isZooming = true },
+                onZoomEnd = {
+                    isZooming = false
+                    zoomTrigger++
+                }
+            )
+            .horizontalSwipeSeekGesture(
+                currentPositionMs = currentPositionMs,
+                durationMs = durationMs,
+                onSeekPreview = { position, delta ->
+                    previewPositionMs = position
+                    previewDeltaMs = delta
+                    showHorizontalSeekIndicator = true
+                    onSeekPreview(position, delta)
+                },
+                onSeekStart = {
+                    wasPlayingBeforeScrub = isPlaying
+                    if (isPlaying) onPauseForScrub()
+                    showHorizontalSeekIndicator = true
+                },
+                onSeekCommit = { position ->
+                    onSeekCommit(position)
+                },
+                onSeekEnd = {
+                    if (wasPlayingBeforeScrub) onResumeAfterScrub()
+                    horizontalSeekTrigger++
+                }
+            )
             .doubleTapSeekGesture(
                 onSeekForward      = { handleForward() },
                 onSeekBackward     = { handleBackward() },
+                onContinueSeek     = { isRightHalf -> 
+                    if (isRightHalf) handleForward() else handleBackward() 
+                },
                 onToggleControls   = onToggleControls,
                 onLongPressStart   = { isLongPressing = true },
                 onLongPressEnd     = { isLongPressing = false },
@@ -170,6 +253,35 @@ fun GestureHandler(
                 .padding(end = 56.dp),
         ) {
             SeekIndicator(label = seekLabel, isForward = true)
+        }
+
+        // ── Pinch zoom indicator ──────────────────────────────────────────────
+        AnimatedVisibility(
+            visible = showZoomIndicator,
+            enter   = fadeIn(tween(120)) + scaleIn(tween(150), initialScale = 0.75f),
+            exit    = fadeOut(tween(250)),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 96.dp), // Staggered below speed indicator
+        ) {
+            PinchZoomIndicator(zoom = localZoom)
+        }
+
+        // ── Horizontal seek indicator ─────────────────────────────────────────
+        AnimatedVisibility(
+            visible = showHorizontalSeekIndicator,
+            enter   = fadeIn(tween(120)) + scaleIn(tween(150), initialScale = 0.75f),
+            exit    = fadeOut(tween(250)),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 48.dp),
+        ) {
+            val sign = if (previewDeltaMs >= 0) "+" else "-"
+            val deltaLabel = "$sign${TimeFormatter.formatMs(abs(previewDeltaMs))}"
+            HorizontalSeekIndicator(
+                currentTimeLabel = TimeFormatter.formatMs(previewPositionMs),
+                deltaLabel = deltaLabel
+            )
         }
 
         // ── Long-press speed badge ────────────────────────────────────────────
