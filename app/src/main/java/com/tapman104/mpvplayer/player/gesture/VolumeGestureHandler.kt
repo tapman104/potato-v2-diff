@@ -9,7 +9,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -110,68 +112,74 @@ fun Modifier.volumeGesture(
         val bottomMargin = 48.dp.toPx()
         val rightMargin = 24.dp.toPx()
 
-        var isValidDrag = false
         var startVolume = 0
         var maxVolume = 0
         var dragAccumulator = 0f
         var lastHandledVolume = -1
 
-        detectVerticalDragGestures(
-            onDragStart = { offset ->
-                val rightHalf = size.width / 2f
-                if (offset.x > rightHalf && 
-                    offset.y > topMargin && 
-                    offset.y < (size.height - bottomMargin) &&
-                    offset.x < (size.width - rightMargin)
-                ) {
-                    isValidDrag = true
-                    maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                    startVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                    lastHandledVolume = startVolume
-                    dragAccumulator = 0f
-                    
-                    val percentage = if (maxVolume > 0) {
-                        (startVolume.toFloat() / maxVolume * 100).toInt()
-                    } else {
-                        0
-                    }
-                    currentOnVolumeChange(percentage)
-                    currentOnDragStart()
+        awaitEachGesture {
+            val firstDown = awaitFirstDown(requireUnconsumed = false)
+            if (firstDown.isConsumed) return@awaitEachGesture
+            
+            val offset = firstDown.position
+            val rightHalf = size.width / 2f
+            
+            if (offset.x > rightHalf && 
+                offset.y > topMargin && 
+                offset.y < (size.height - bottomMargin) &&
+                offset.x < (size.width - rightMargin)
+            ) {
+                firstDown.consume()
+                maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                startVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                lastHandledVolume = startVolume
+                dragAccumulator = 0f
+                
+                val percentage = if (maxVolume > 0) {
+                    (startVolume.toFloat() / maxVolume * 100).toInt()
                 } else {
-                    isValidDrag = false
+                    0
                 }
-            },
-            onDragEnd = {
-                if (isValidDrag) currentOnDragEnd()
-                isValidDrag = false
-            },
-            onDragCancel = {
-                if (isValidDrag) currentOnDragEnd()
-                isValidDrag = false
-            },
-            onVerticalDrag = { change, dragAmount ->
-                if (isValidDrag) {
-                    change.consume()
-                    dragAccumulator += dragAmount
+                currentOnVolumeChange(percentage)
+                currentOnDragStart()
+                
+                var lastPosition = offset.y
+                
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Main)
+                    event.changes.forEach { it.consume() }
                     
-                    val volumeDelta = (-dragAccumulator / size.height) * maxVolume
-                    val newVolume = (startVolume + volumeDelta).roundToInt().coerceIn(0, maxVolume)
-                    
-                    if (newVolume != lastHandledVolume) {
-                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
-                        lastHandledVolume = newVolume
+                    val change = event.changes.firstOrNull()
+                    if (change != null) {
+                        val currentPosition = change.position.y
+                        val dragAmount = currentPosition - lastPosition
+                        lastPosition = currentPosition
                         
-                        val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                        val percentage = if (maxVolume > 0) {
-                            (currentVol.toFloat() / maxVolume * 100).toInt()
-                        } else {
-                            0
+                        dragAccumulator += dragAmount
+                        
+                        val volumeDelta = (-dragAccumulator / size.height) * maxVolume
+                        val newVolume = (startVolume + volumeDelta).roundToInt().coerceIn(0, maxVolume)
+                        
+                        if (newVolume != lastHandledVolume) {
+                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
+                            lastHandledVolume = newVolume
+                            
+                            val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                            val newPercentage = if (maxVolume > 0) {
+                                (currentVol.toFloat() / maxVolume * 100).toInt()
+                            } else {
+                                0
+                            }
+                            currentOnVolumeChange(newPercentage)
                         }
-                        currentOnVolumeChange(percentage)
+                    }
+                    if (event.changes.any { !it.pressed }) {
+                        break
                     }
                 }
+                currentOnDragEnd()
             }
-        )
+        }
     }
 }
 

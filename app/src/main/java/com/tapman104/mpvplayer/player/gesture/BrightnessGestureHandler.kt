@@ -7,7 +7,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -119,48 +121,55 @@ fun Modifier.brightnessGesture(
         val bottomMargin = 48.dp.toPx()
         val leftMargin = 24.dp.toPx()
 
-        var isValidDrag = false
         var startBrightness = 0f
         var dragAccumulator = 0f
 
-        detectVerticalDragGestures(
-            onDragStart = { offset ->
-                val leftHalf = size.width / 2f
-                if (offset.x < leftHalf && 
-                    offset.y > topMargin && 
-                    offset.y < (size.height - bottomMargin) &&
-                    offset.x > leftMargin
-                ) {
-                    isValidDrag = true
-                    startBrightness = currentInitialBrightness
-                    dragAccumulator = 0f
+        awaitEachGesture {
+            val firstDown = awaitFirstDown(requireUnconsumed = false)
+            if (firstDown.isConsumed) return@awaitEachGesture
+            
+            val offset = firstDown.position
+            val leftHalf = size.width / 2f
+            
+            if (offset.x < leftHalf && 
+                offset.y > topMargin && 
+                offset.y < (size.height - bottomMargin) &&
+                offset.x > leftMargin
+            ) {
+                firstDown.consume()
+                startBrightness = currentInitialBrightness
+                dragAccumulator = 0f
+                
+                currentOnBrightnessUpdate(startBrightness)
+                currentOnDragStart()
+                
+                var lastPosition = offset.y
+                
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Main)
+                    event.changes.forEach { it.consume() }
                     
-                    currentOnBrightnessUpdate(startBrightness)
-                    currentOnDragStart()
-                } else {
-                    isValidDrag = false
+                    val change = event.changes.firstOrNull()
+                    if (change != null) {
+                        val currentPosition = change.position.y
+                        val dragAmount = currentPosition - lastPosition
+                        lastPosition = currentPosition
+                        
+                        dragAccumulator += dragAmount
+                        
+                        val brightnessDelta = -dragAccumulator / size.height
+                        val newBrightness = (startBrightness + brightnessDelta).coerceIn(0f, 1f)
+                        
+                        currentOnBrightnessUpdate(newBrightness)
+                    }
+                    
+                    if (event.changes.any { !it.pressed }) {
+                        break
+                    }
                 }
-            },
-            onDragEnd = {
-                if (isValidDrag) currentOnDragEnd()
-                isValidDrag = false
-            },
-            onDragCancel = {
-                if (isValidDrag) currentOnDragEnd()
-                isValidDrag = false
-            },
-            onVerticalDrag = { change, dragAmount ->
-                if (isValidDrag) {
-                    change.consume()
-                    dragAccumulator += dragAmount
-                    
-                    val brightnessDelta = -dragAccumulator / size.height
-                    val newBrightness = (startBrightness + brightnessDelta).coerceIn(0f, 1f)
-                    
-                    currentOnBrightnessUpdate(newBrightness)
-                }
+                currentOnDragEnd()
             }
-        )
+        }
     }
 }
 
