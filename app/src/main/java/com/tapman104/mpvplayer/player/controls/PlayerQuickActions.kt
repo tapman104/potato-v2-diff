@@ -1,7 +1,11 @@
 package com.tapman104.mpvplayer.player.controls
 
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -16,9 +20,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tapman104.mpvplayer.player.model.DecodeMode
+
+/** Backdrop-blur modifier matching the SeekPill treatment in PlayerBottomControls. */
+private fun Modifier.glassButtonBlur(): Modifier =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        this.graphicsLayer {
+            renderEffect = RenderEffect
+                .createBackdropBlurEffect(20f, 20f, Shader.TileMode.CLAMP)
+                .asComposeRenderEffect()
+        }
+    } else {
+        this // semi-transparent containerColor provides legibility on API < 31
+    }
 
 @Composable
 fun PlayerQuickActions(
@@ -30,10 +48,16 @@ fun PlayerQuickActions(
 ) {
     var expanded by remember { mutableStateOf(true) }
 
-    val buttonColors = IconButtonDefaults.filledTonalIconButtonColors(
-        containerColor = Color.Black.copy(alpha = 0.35f),
-        contentColor = Color.White
+    val buttonColors = IconButtonDefaults.outlinedIconButtonColors(
+        containerColor = Color.Black.copy(alpha = 0.10f),
+        contentColor = Color.White.copy(alpha = 0.95f)
     )
+    val buttonBorder = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
+
+    /** Shadow + blur modifier reused by every button. */
+    fun Modifier.glassButton(): Modifier = this
+        .shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black)
+        .glassButtonBlur()
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -55,34 +79,39 @@ fun PlayerQuickActions(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.padding(end = 4.dp)
             ) {
-                FilledTonalIconButton(
+                OutlinedIconButton(
                     onClick = onSelectAudioTrack,
-                    modifier = Modifier.size(48.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
-                    colors = buttonColors
+                    modifier = Modifier.size(48.dp).glassButton(),
+                    colors = buttonColors,
+                    border = buttonBorder
                 ) {
                     Icon(
                         Icons.Filled.Audiotrack,
                         contentDescription = "Audio track",
+                        tint = Color.White.copy(alpha = 0.95f),
                         modifier = Modifier.size(18.dp)
                     )
                 }
 
-                FilledTonalIconButton(
+                OutlinedIconButton(
                     onClick = onSelectSubtitleTrack,
-                    modifier = Modifier.size(48.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
-                    colors = buttonColors
+                    modifier = Modifier.size(48.dp).glassButton(),
+                    colors = buttonColors,
+                    border = buttonBorder
                 ) {
                     Icon(
                         Icons.Filled.ClosedCaption,
                         contentDescription = "Subtitle track",
+                        tint = Color.White.copy(alpha = 0.95f),
                         modifier = Modifier.size(18.dp)
                     )
                 }
 
-                FilledTonalIconButton(
+                OutlinedIconButton(
                     onClick = onCycleDecodeMode,
-                    modifier = Modifier.size(48.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
-                    colors = buttonColors
+                    modifier = Modifier.size(48.dp).glassButton(),
+                    colors = buttonColors,
+                    border = buttonBorder
                 ) {
                     Text(
                         text = when (decodeMode) {
@@ -91,18 +120,20 @@ fun PlayerQuickActions(
                             DecodeMode.SW     -> "SW"
                         },
                         fontSize = 10.sp,
-                        color = Color.White
+                        color = Color.White.copy(alpha = 0.95f)
                     )
                 }
 
-                FilledTonalIconButton(
+                OutlinedIconButton(
                     onClick = onMoreOptions,
-                    modifier = Modifier.size(48.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
-                    colors = buttonColors
+                    modifier = Modifier.size(48.dp).glassButton(),
+                    colors = buttonColors,
+                    border = buttonBorder
                 ) {
                     Icon(
                         Icons.Filled.Settings,
                         contentDescription = "More options",
+                        tint = Color.White.copy(alpha = 0.95f),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -110,14 +141,16 @@ fun PlayerQuickActions(
         }
 
         // Always-visible collapse/expand toggle
-        FilledTonalIconButton(
+        OutlinedIconButton(
             onClick = { expanded = !expanded },
-            modifier = Modifier.size(48.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
-            colors = buttonColors
+            modifier = Modifier.size(48.dp).glassButton(),
+            colors = buttonColors,
+            border = buttonBorder
         ) {
             Icon(
                 imageVector = if (expanded) Icons.Filled.ChevronLeft else Icons.Filled.ChevronRight,
                 contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = Color.White.copy(alpha = 0.95f),
                 modifier = Modifier.size(22.dp)
             )
         }
