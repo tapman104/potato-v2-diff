@@ -21,13 +21,16 @@ import com.tapman104.mpvplayer.player.controls.PlayerTopBar
 import com.tapman104.mpvplayer.player.controls.PlayerBottomControls
 import com.tapman104.mpvplayer.player.controls.PlayerQuickActions
 import com.tapman104.mpvplayer.player.gesture.GestureHandler
-
+import com.tapman104.mpvplayer.player.gesture.VolumeGestureHandler
+import com.tapman104.mpvplayer.player.gesture.BrightnessGestureHandler
 
 @Composable
 fun PlayerOverlay(
     fileName: String,
     playerState: PlayerState,
     onOpenFile: () -> Unit,
+    initialBrightness: Float = -1f,
+    onBrightnessChange: (Float) -> Unit = {},
     onTogglePlay: () -> Unit,
     onSeek: (Long) -> Unit,
     onSeekForward: (Long) -> Unit,
@@ -48,6 +51,7 @@ fun PlayerOverlay(
     var showAudioDialog by remember { mutableStateOf(false) }
     var showSubtitleDialog by remember { mutableStateOf(false) }
     var showSubtitleAppearanceDialog by remember { mutableStateOf(false) }
+    var volumePercentage by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(controlsVisible, showAudioDialog, showSubtitleDialog, showSubtitleAppearanceDialog) {
         if (controlsVisible && !showAudioDialog && !showSubtitleDialog && !showSubtitleAppearanceDialog) {
@@ -58,7 +62,20 @@ fun PlayerOverlay(
 
     Box(modifier = modifier.fillMaxSize()) {
 
-        // ── GESTURE HANDLER (above surface, below controls) ───────────────────
+        // ── GESTURE HANDLERS (above surface, below controls) ───────────────────
+        // They must be layered in this order so that volume/brightness consume first:
+        VolumeGestureHandler(
+            volumePercentage = volumePercentage,
+            onVolumeChange = { volumePercentage = it },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        BrightnessGestureHandler(
+            initialBrightness = initialBrightness,
+            onBrightnessChange = onBrightnessChange,
+            modifier = Modifier.fillMaxSize()
+        )
+
         GestureHandler(
             onSeekForward    = onSeekForward,
             onSeekBackward   = onSeekBackward,

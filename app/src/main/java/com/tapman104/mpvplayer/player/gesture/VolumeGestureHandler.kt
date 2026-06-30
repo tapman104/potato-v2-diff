@@ -130,6 +130,7 @@ fun Modifier.volumeGesture(
                 offset.x < (size.width - rightMargin)
             ) {
                 firstDown.consume()
+                val pointerId = firstDown.id
                 maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 startVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
                 lastHandledVolume = startVolume
@@ -149,7 +150,7 @@ fun Modifier.volumeGesture(
                     val event = awaitPointerEvent(PointerEventPass.Main)
                     event.changes.forEach { it.consume() }
                     
-                    val change = event.changes.firstOrNull()
+                    val change = event.changes.firstOrNull { it.id == pointerId }
                     if (change != null) {
                         val currentPosition = change.position.y
                         val dragAmount = currentPosition - lastPosition
@@ -173,7 +174,7 @@ fun Modifier.volumeGesture(
                             currentOnVolumeChange(newPercentage)
                         }
                     }
-                    if (event.changes.any { !it.pressed }) {
+                    if (event.changes.any { it.id == pointerId && !it.pressed }) {
                         break
                     }
                 }

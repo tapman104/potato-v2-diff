@@ -137,6 +137,7 @@ fun Modifier.brightnessGesture(
                 offset.x > leftMargin
             ) {
                 firstDown.consume()
+                val pointerId = firstDown.id
                 startBrightness = currentInitialBrightness
                 dragAccumulator = 0f
                 
@@ -149,7 +150,7 @@ fun Modifier.brightnessGesture(
                     val event = awaitPointerEvent(PointerEventPass.Main)
                     event.changes.forEach { it.consume() }
                     
-                    val change = event.changes.firstOrNull()
+                    val change = event.changes.firstOrNull { it.id == pointerId }
                     if (change != null) {
                         val currentPosition = change.position.y
                         val dragAmount = currentPosition - lastPosition
@@ -163,7 +164,7 @@ fun Modifier.brightnessGesture(
                         currentOnBrightnessUpdate(newBrightness)
                     }
                     
-                    if (event.changes.any { !it.pressed }) {
+                    if (event.changes.any { it.id == pointerId && !it.pressed }) {
                         break
                     }
                 }

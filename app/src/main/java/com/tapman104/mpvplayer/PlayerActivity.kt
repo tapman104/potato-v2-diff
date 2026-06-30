@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.view.SurfaceView
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -96,6 +97,16 @@ class PlayerActivity : ComponentActivity() {
                 var preOverrideSpeed by remember { mutableFloatStateOf(1f) }
                 var showSettings by remember { mutableStateOf(false) }
 
+                val initialBrightness = remember {
+                    val currentWindowBrightness = window.attributes.screenBrightness
+                    if (currentWindowBrightness < 0f) {
+                        val sysBrightness = Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128)
+                        (sysBrightness / 255f).coerceIn(0f, 1f)
+                    } else {
+                        currentWindowBrightness
+                    }
+                }
+
                 // Capture current speed so we can restore after long-press override
                 val currentSpeed = playerState.speed
 
@@ -137,6 +148,12 @@ class PlayerActivity : ComponentActivity() {
                     surfaceView = surfaceView,
                     onTogglePlay = { viewModel.togglePlay() },
                     onSeek = { viewModel.seekTo(it) },
+                    initialBrightness = initialBrightness,
+                    onBrightnessChange = { newBrightness ->
+                        val layoutParams = window.attributes
+                        layoutParams.screenBrightness = newBrightness
+                        window.attributes = layoutParams
+                    },
                     onOpenFile = { filePickerLauncher.launch(arrayOf("video/*")) },
                     onSeekForward  = { offsetMs -> viewModel.seekRelative(offsetMs) },
                     onSeekBackward = { offsetMs -> viewModel.seekRelative(-offsetMs) },
