@@ -112,10 +112,11 @@ fun GestureHandler(
             showSeekIndicator = true
             delay(650L)
             showSeekIndicator = false
-            seekLabel     = ""
-            seekDirection = SeekDirection.None
             tapCount      = 0
             lastTapSide   = ""
+            delay(250L)
+            seekLabel     = ""
+            seekDirection = SeekDirection.None
         }
     }
 
