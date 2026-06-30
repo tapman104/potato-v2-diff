@@ -48,55 +48,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-@Composable
-fun VolumeGestureHandler(
-    volumePercentage: Int,
-    onVolumeChange: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
-    
-    var isDragging by remember { mutableStateOf(false) }
-    var showIndicator by remember { mutableStateOf(false) }
-    var hideTrigger by remember { mutableIntStateOf(0) }
-    
-    LaunchedEffect(hideTrigger, isDragging) {
-        if (isDragging) {
-            showIndicator = true
-        } else if (hideTrigger > 0) {
-            showIndicator = true
-            delay(700L)
-            showIndicator = false
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .volumeGesture(
-                audioManager = audioManager,
-                onVolumeChange = onVolumeChange,
-                onDragStart = { isDragging = true },
-                onDragEnd = {
-                    isDragging = false
-                    hideTrigger++
-                }
-            )
-    ) {
-        AnimatedVisibility(
-            visible = showIndicator,
-            enter = fadeIn(tween(120)) + scaleIn(tween(150), initialScale = 0.75f),
-            exit = fadeOut(tween(250)),
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 56.dp)
-        ) {
-            VolumeIndicator(percentage = volumePercentage)
-        }
-    }
-}
-
+// Wrapper composable removed to consolidate gestures in GestureHandler.kt
 fun Modifier.volumeGesture(
     audioManager: AudioManager,
     onVolumeChange: (Int) -> Unit,
@@ -118,7 +70,9 @@ fun Modifier.volumeGesture(
         var lastHandledVolume = -1
 
         awaitEachGesture {
+            android.util.Log.d("TEMP-DEBUG", "VolumeGestureHandler: waiting for first down")
             val firstDown = awaitFirstDown(requireUnconsumed = false)
+            android.util.Log.d("TEMP-DEBUG", "VolumeGestureHandler: got down. consumed=${firstDown.isConsumed}")
             if (firstDown.isConsumed) return@awaitEachGesture
             
             val offset = firstDown.position
@@ -129,6 +83,7 @@ fun Modifier.volumeGesture(
                 offset.y < (size.height - bottomMargin) &&
                 offset.x < (size.width - rightMargin)
             ) {
+                android.util.Log.d("TEMP-DEBUG", "VolumeGestureHandler: IN ZONE, consuming first down!")
                 firstDown.consume()
                 val pointerId = firstDown.id
                 maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -148,7 +103,10 @@ fun Modifier.volumeGesture(
                 
                 while (true) {
                     val event = awaitPointerEvent(PointerEventPass.Main)
-                    event.changes.forEach { it.consume() }
+                    event.changes.forEach { 
+                        android.util.Log.d("TEMP-DEBUG", "VolumeGestureHandler: loop consuming change id=${it.id}")
+                        it.consume() 
+                    }
                     
                     val change = event.changes.firstOrNull { it.id == pointerId }
                     if (change != null) {
@@ -185,7 +143,7 @@ fun Modifier.volumeGesture(
 }
 
 @Composable
-private fun VolumeIndicator(percentage: Int) {
+fun VolumeIndicator(percentage: Int) {
     val icon = when {
         percentage == 0 -> Icons.AutoMirrored.Filled.VolumeOff
         percentage < 50 -> Icons.AutoMirrored.Filled.VolumeDown

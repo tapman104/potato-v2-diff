@@ -1,5 +1,7 @@
 package com.tapman104.mpvplayer.player.gesture
 
+import android.content.Context
+import android.media.AudioManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -39,10 +41,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,8 +72,8 @@ enum class SeekDirection { Forward, Backward, None }
  */
 @Composable
 fun GestureHandler(
-    currentPositionMs: Long,
-    durationMs: Long,
+    currentPositionMs: () -> Long,
+    durationMs: () -> Long,
     isPlaying: Boolean,
     onSeekPreview: (Long, Long) -> Unit,
     onSeekCommit: (Long) -> Unit,
@@ -83,6 +87,10 @@ fun GestureHandler(
     modifier: Modifier = Modifier,
     currentZoom: Float = 0f,
     onZoomChange: (Float) -> Unit = {},
+    initialBrightness: Float = -1f,
+    onBrightnessChange: (Float) -> Unit = {},
+    volumePercentage: Int = 0,
+    onVolumeChange: (Int) -> Unit = {},
 ) {
     // ── State ────────────────────────────────────────────────────────────────
     var seekDirection    by remember { mutableStateOf(SeekDirection.None) }
@@ -105,6 +113,19 @@ fun GestureHandler(
     var showZoomIndicator by remember { mutableStateOf(false) }
     var zoomTrigger by remember { mutableIntStateOf(0) }
     var localZoom by remember { mutableFloatStateOf(currentZoom) }
+
+    // ── Local state for volume and brightness ────────────────────────────────
+    val context = LocalContext.current
+    val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    
+    var isVolumeDragging by remember { mutableStateOf(false) }
+    var showVolumeIndicator by remember { mutableStateOf(false) }
+    var volumeHideTrigger by remember { mutableIntStateOf(0) }
+
+    var isBrightnessDragging by remember { mutableStateOf(false) }
+    var showBrightnessIndicator by remember { mutableStateOf(false) }
+    var brightnessHideTrigger by remember { mutableIntStateOf(0) }
+    var currentBrightness by remember { mutableFloatStateOf(initialBrightness) }
 
     // ── Auto-hide timers ─────────────────────────────────────────────────────
     LaunchedEffect(labelTrigger) {
@@ -141,6 +162,32 @@ fun GestureHandler(
             showHorizontalSeekIndicator = true
             delay(700L)
             showHorizontalSeekIndicator = false
+        }
+    }
+
+    LaunchedEffect(initialBrightness) {
+        if (!isBrightnessDragging) {
+            currentBrightness = initialBrightness
+        }
+    }
+
+    LaunchedEffect(volumeHideTrigger, isVolumeDragging) {
+        if (isVolumeDragging) {
+            showVolumeIndicator = true
+        } else if (volumeHideTrigger > 0) {
+            showVolumeIndicator = true
+            delay(700L)
+            showVolumeIndicator = false
+        }
+    }
+
+    LaunchedEffect(brightnessHideTrigger, isBrightnessDragging) {
+        if (isBrightnessDragging) {
+            showBrightnessIndicator = true
+        } else if (brightnessHideTrigger > 0) {
+            showBrightnessIndicator = true
+            delay(700L)
+            showBrightnessIndicator = false
         }
     }
 
@@ -184,6 +231,27 @@ fun GestureHandler(
     Box(
         modifier = modifier
             .fillMaxSize()
+            .volumeGesture(
+                audioManager = audioManager,
+                onVolumeChange = onVolumeChange,
+                onDragStart = { isVolumeDragging = true },
+                onDragEnd = {
+                    isVolumeDragging = false
+                    volumeHideTrigger++
+                }
+            )
+            .brightnessGesture(
+                initialBrightness = currentBrightness,
+                onBrightnessUpdate = { newBrightness ->
+                    currentBrightness = newBrightness
+                    onBrightnessChange(newBrightness)
+                },
+                onDragStart = { isBrightnessDragging = true },
+                onDragEnd = {
+                    isBrightnessDragging = false
+                    brightnessHideTrigger++
+                }
+            )
             .pinchZoomGesture(
                 currentZoom = localZoom,
                 onZoomUpdate = { newZoom ->
@@ -265,6 +333,30 @@ fun GestureHandler(
                 .padding(top = 96.dp), // Staggered below speed indicator
         ) {
             PinchZoomIndicator(zoom = localZoom)
+        }
+
+        // ── Volume indicator ──────────────────────────────────────────────────
+        AnimatedVisibility(
+            visible = showVolumeIndicator,
+            enter = fadeIn(tween(120)) + scaleIn(tween(150), initialScale = 0.75f),
+            exit = fadeOut(tween(250)),
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 56.dp)
+        ) {
+            VolumeIndicator(percentage = volumePercentage)
+        }
+
+        // ── Brightness indicator ──────────────────────────────────────────────
+        AnimatedVisibility(
+            visible = showBrightnessIndicator,
+            enter = fadeIn(tween(120)) + scaleIn(tween(150), initialScale = 0.75f),
+            exit = fadeOut(tween(250)),
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 56.dp)
+        ) {
+            BrightnessIndicator(brightness = currentBrightness)
         }
 
         // ── Horizontal seek indicator ─────────────────────────────────────────

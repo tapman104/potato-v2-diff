@@ -24,8 +24,6 @@ import com.tapman104.mpvplayer.player.controls.PlayerTopBar
 import com.tapman104.mpvplayer.player.controls.PlayerBottomControls
 import com.tapman104.mpvplayer.player.controls.PlayerQuickActions
 import com.tapman104.mpvplayer.player.gesture.GestureHandler
-import com.tapman104.mpvplayer.player.gesture.VolumeGestureHandler
-import com.tapman104.mpvplayer.player.gesture.BrightnessGestureHandler
 
 @Composable
 fun PlayerOverlay(
@@ -72,8 +70,8 @@ fun PlayerOverlay(
     Box(modifier = modifier.fillMaxSize()) {
 
         GestureHandler(
-            currentPositionMs = playerState.currentPositionMs,
-            durationMs = playerState.durationMs,
+            currentPositionMs = { playerState.currentPositionMs },
+            durationMs = { playerState.durationMs },
             isPlaying = playerState.isPlaying,
             onSeekPreview = { _, _ -> },
             onSeekCommit = onSeek,
@@ -85,18 +83,10 @@ fun PlayerOverlay(
             onSpeedOverride  = onSpeedOverride,
             onSpeedRestore   = onSpeedRestore,
             modifier         = Modifier.fillMaxSize(),
-        )
-
-        BrightnessGestureHandler(
             initialBrightness = initialBrightness,
             onBrightnessChange = onBrightnessChange,
-            modifier = Modifier.fillMaxSize()
-        )
-
-        VolumeGestureHandler(
             volumePercentage = volumePercentage,
-            onVolumeChange = { volumePercentage = it },
-            modifier = Modifier.fillMaxSize()
+            onVolumeChange = { volumePercentage = it }
         )
 
         // ── TOP BAR ──────────────────────────────────────────────────────────

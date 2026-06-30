@@ -28,29 +28,38 @@ import kotlin.math.abs
 
 const val HORIZONTAL_SEEK_SENSITIVITY_FRACTION = 0.1f
 
+/**
+ * Detects a horizontal scrub gesture in the central strip and emits seek callbacks.
+ *
+ * [currentPositionMs] and [durationMs] are read as lambdas so the modifier's identity
+ * never changes on playback-position ticks — the [pointerInput](Unit) coroutine is
+ * never restarted by recomposition.
+ */
 fun Modifier.horizontalSwipeSeekGesture(
-    currentPositionMs: Long,
-    durationMs: Long,
+    currentPositionMs: () -> Long,
+    durationMs: () -> Long,
     onSeekPreview: (positionMs: Long, deltaMs: Long) -> Unit,
     onSeekStart: () -> Unit,
     onSeekCommit: (positionMs: Long) -> Unit,
     onSeekEnd: () -> Unit,
 ): Modifier = composed {
     val currentOnSeekPreview by rememberUpdatedState(onSeekPreview)
-    val currentOnSeekStart by rememberUpdatedState(onSeekStart)
-    val currentOnSeekCommit by rememberUpdatedState(onSeekCommit)
-    val currentOnSeekEnd by rememberUpdatedState(onSeekEnd)
-    val currentPosition by rememberUpdatedState(currentPositionMs)
-    val currentDuration by rememberUpdatedState(durationMs)
+    val currentOnSeekStart   by rememberUpdatedState(onSeekStart)
+    val currentOnSeekCommit  by rememberUpdatedState(onSeekCommit)
+    val currentOnSeekEnd     by rememberUpdatedState(onSeekEnd)
+    // currentPositionMs / durationMs are lambdas that capture snapshot state — invoke
+    // them directly inside the coroutine to read the live value without rememberUpdatedState.
 
     pointerInput(Unit) {
-        val topMargin = 48.dp.toPx()
+        val topMargin    = 48.dp.toPx()
         val bottomMargin = 48.dp.toPx()
-        val leftMargin = 24.dp.toPx()
-        val rightMargin = 24.dp.toPx()
+        val leftMargin   = 24.dp.toPx()
+        val rightMargin  = 24.dp.toPx()
 
         awaitEachGesture {
+            android.util.Log.d("TEMP-DEBUG", "HorizontalSwipeSeek: waiting for first down")
             val firstDown = awaitFirstDown(requireUnconsumed = false)
+            android.util.Log.d("TEMP-DEBUG", "HorizontalSwipeSeek: got down. consumed=${firstDown.isConsumed}")
             if (firstDown.isConsumed) return@awaitEachGesture
 
             val offset = firstDown.position
@@ -65,12 +74,12 @@ fun Modifier.horizontalSwipeSeekGesture(
             var deltaY = 0f
             var isCommitted = false
             val startTime = System.currentTimeMillis()
-            var startPositionMs = currentPosition
+            var startPositionMs = currentPositionMs()
             var lastTargetPositionMs = startPositionMs
 
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Main)
-                
+
                 val change = event.changes.firstOrNull { it.id == pointerId }
                 if (change != null) {
                     if (change.isConsumed) {
@@ -87,17 +96,18 @@ fun Modifier.horizontalSwipeSeekGesture(
                     if (!isCommitted) {
                         val elapsed = System.currentTimeMillis() - startTime
                         if (abs(deltaX) > 30f && abs(deltaX) > abs(deltaY) * 2f && elapsed >= 80L) {
-                            isCommitted = true
-                            startPositionMs = currentPosition
+                            isCommitted     = true
+                            startPositionMs = currentPositionMs()
                             currentOnSeekStart()
                         }
                     }
 
                     if (isCommitted) {
                         change.consume()
-                        val seekMs = (deltaX * (currentDuration * HORIZONTAL_SEEK_SENSITIVITY_FRACTION / size.width)).toLong()
-                        val targetPositionMs = (startPositionMs + seekMs).coerceIn(0L, currentDuration)
-                        
+                        val dur    = durationMs()
+                        val seekMs = (deltaX * (dur * HORIZONTAL_SEEK_SENSITIVITY_FRACTION / size.width)).toLong()
+                        val targetPositionMs = (startPositionMs + seekMs).coerceIn(0L, dur)
+
                         if (targetPositionMs != lastTargetPositionMs) {
                             lastTargetPositionMs = targetPositionMs
                             currentOnSeekPreview(targetPositionMs, targetPositionMs - startPositionMs)
@@ -148,3 +158,4 @@ fun HorizontalSeekIndicator(currentTimeLabel: String, deltaLabel: String) {
         }
     }
 }
+

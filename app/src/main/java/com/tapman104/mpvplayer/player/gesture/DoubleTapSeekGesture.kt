@@ -55,7 +55,9 @@ fun Modifier.doubleTapSeekGesture(
         awaitEachGesture {
 
             // ── 1. Wait for the first down ───────────────────────────────────
+            android.util.Log.d("TEMP-DEBUG", "DoubleTapSeekGesture: waiting for first down")
             val firstDown = awaitFirstDown(requireUnconsumed = false)
+            android.util.Log.d("TEMP-DEBUG", "DoubleTapSeekGesture: got down. consumed=${firstDown.isConsumed}")
 
             // Let vertical swipe gestures (volume/brightness) take priority
             if (firstDown.isConsumed) return@awaitEachGesture
@@ -152,6 +154,7 @@ fun Modifier.doubleTapSeekGesture(
                 continuationSide = isRightHalf
                 lastContinuationTime = System.currentTimeMillis()
             } else {
+                android.util.Log.d("TEMP-DEBUG", "DoubleTapSeekGesture: toggling controls")
                 currentOnToggleControls()
             }
         }

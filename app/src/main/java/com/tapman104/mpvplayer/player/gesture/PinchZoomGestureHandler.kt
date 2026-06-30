@@ -113,49 +113,46 @@ fun Modifier.pinchZoomGesture(
     onZoomEnd: () -> Unit
 ): Modifier = composed {
     val currentOnZoomUpdate by rememberUpdatedState(onZoomUpdate)
-    val currentOnZoomStart by rememberUpdatedState(onZoomStart)
-    val currentOnZoomEnd by rememberUpdatedState(onZoomEnd)
-    
-    val currentInitialZoom by rememberUpdatedState(currentZoom)
+    val currentOnZoomStart  by rememberUpdatedState(onZoomStart)
+    val currentOnZoomEnd    by rememberUpdatedState(onZoomEnd)
+    val currentInitialZoom  by rememberUpdatedState(currentZoom)
 
     pointerInput(Unit) {
         awaitEachGesture {
+            android.util.Log.d("TEMP-DEBUG", "PinchZoom: waiting for first down")
             val firstDown = awaitFirstDown(requireUnconsumed = false)
+            android.util.Log.d("TEMP-DEBUG", "PinchZoom: got down. consumed=${firstDown.isConsumed}")
             if (firstDown.isConsumed) return@awaitEachGesture
-            
+
             var zoomConfirmed = false
             var zoomAccumulator = 0f
             var previousDist = 0f
             var accumulatedDistanceChange = 0f
             val distanceThreshold = 5f
-            
+
             var p1Id: androidx.compose.ui.input.pointer.PointerId? = null
             var p2Id: androidx.compose.ui.input.pointer.PointerId? = null
 
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Main)
-                
+
                 if (event.changes.any { it.isConsumed }) {
-                    if (zoomConfirmed) {
-                        currentOnZoomEnd()
-                    }
+                    if (zoomConfirmed) currentOnZoomEnd()
                     break
                 }
 
                 val pressedCount = event.changes.count { it.pressed }
                 if (pressedCount != 2) {
-                    if (zoomConfirmed) {
-                        currentOnZoomEnd()
-                    }
+                    if (zoomConfirmed) currentOnZoomEnd()
                     break
                 }
 
                 val pressedChanges = event.changes.filter { it.pressed }
                 val p1 = pressedChanges[0]
                 val p2 = pressedChanges[1]
-                
+
                 val dist = (p1.position - p2.position).getDistance()
-                
+
                 if (p1Id == null || p2Id == null) {
                     p1Id = p1.id
                     p2Id = p2.id
@@ -163,7 +160,7 @@ fun Modifier.pinchZoomGesture(
                     zoomAccumulator = currentInitialZoom
                 } else {
                     val distChange = abs(dist - previousDist)
-                    
+
                     if (!zoomConfirmed) {
                         accumulatedDistanceChange += distChange
                         if (accumulatedDistanceChange > distanceThreshold) {
@@ -171,14 +168,12 @@ fun Modifier.pinchZoomGesture(
                             currentOnZoomStart()
                         }
                     }
-                    
+
                     if (zoomConfirmed) {
-                        event.changes.forEach { 
-                            if (it.id == p1Id || it.id == p2Id) {
-                                it.consume() 
-                            }
+                        event.changes.forEach {
+                            if (it.id == p1Id || it.id == p2Id) it.consume()
                         }
-                        
+
                         if (previousDist > 0f && dist > 0f) {
                             val zoomDelta = ln(dist / previousDist)
                             zoomAccumulator += zoomDelta

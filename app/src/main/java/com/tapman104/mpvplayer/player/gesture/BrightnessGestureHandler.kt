@@ -46,64 +46,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-@Composable
-fun BrightnessGestureHandler(
-    initialBrightness: Float = 0.5f,
-    onBrightnessChange: (Float) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var isDragging by remember { mutableStateOf(false) }
-    var showIndicator by remember { mutableStateOf(false) }
-    var hideTrigger by remember { mutableIntStateOf(0) }
-    
-    // Track local brightness state starting from initialBrightness
-    var currentBrightness by remember { mutableFloatStateOf(initialBrightness) }
-
-    LaunchedEffect(initialBrightness) {
-        if (!isDragging) {
-            currentBrightness = initialBrightness
-        }
-    }
-
-    LaunchedEffect(hideTrigger, isDragging) {
-        if (isDragging) {
-            showIndicator = true
-        } else if (hideTrigger > 0) {
-            showIndicator = true
-            delay(700L)
-            showIndicator = false
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .brightnessGesture(
-                initialBrightness = currentBrightness,
-                onBrightnessUpdate = { newBrightness ->
-                    currentBrightness = newBrightness
-                    onBrightnessChange(newBrightness)
-                },
-                onDragStart = { isDragging = true },
-                onDragEnd = {
-                    isDragging = false
-                    hideTrigger++
-                }
-            )
-    ) {
-        AnimatedVisibility(
-            visible = showIndicator,
-            enter = fadeIn(tween(120)) + scaleIn(tween(150), initialScale = 0.75f),
-            exit = fadeOut(tween(250)),
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 56.dp)
-        ) {
-            BrightnessIndicator(brightness = currentBrightness)
-        }
-    }
-}
-
+// Wrapper composable removed to consolidate gestures in GestureHandler.kt
 fun Modifier.brightnessGesture(
     initialBrightness: Float,
     onBrightnessUpdate: (Float) -> Unit,
@@ -125,7 +68,9 @@ fun Modifier.brightnessGesture(
         var dragAccumulator = 0f
 
         awaitEachGesture {
+            android.util.Log.d("TEMP-DEBUG", "BrightnessGestureHandler: waiting for first down")
             val firstDown = awaitFirstDown(requireUnconsumed = false)
+            android.util.Log.d("TEMP-DEBUG", "BrightnessGestureHandler: got down. consumed=${firstDown.isConsumed}")
             if (firstDown.isConsumed) return@awaitEachGesture
             
             val offset = firstDown.position
@@ -136,6 +81,7 @@ fun Modifier.brightnessGesture(
                 offset.y < (size.height - bottomMargin) &&
                 offset.x > leftMargin
             ) {
+                android.util.Log.d("TEMP-DEBUG", "BrightnessGestureHandler: IN ZONE, consuming first down!")
                 firstDown.consume()
                 val pointerId = firstDown.id
                 startBrightness = currentInitialBrightness
@@ -148,7 +94,10 @@ fun Modifier.brightnessGesture(
                 
                 while (true) {
                     val event = awaitPointerEvent(PointerEventPass.Main)
-                    event.changes.forEach { it.consume() }
+                    event.changes.forEach { 
+                        android.util.Log.d("TEMP-DEBUG", "BrightnessGestureHandler: loop consuming change id=${it.id}")
+                        it.consume() 
+                    }
                     
                     val change = event.changes.firstOrNull { it.id == pointerId }
                     if (change != null) {
@@ -175,7 +124,7 @@ fun Modifier.brightnessGesture(
 }
 
 @Composable
-private fun BrightnessIndicator(brightness: Float) {
+fun BrightnessIndicator(brightness: Float) {
     val percentage = (brightness * 100).roundToInt()
     val icon = when {
         percentage < 33 -> Icons.Filled.BrightnessLow
