@@ -29,7 +29,7 @@ fun PlayerQuickActions(
     var expanded by remember { mutableStateOf(true) }
 
     val buttonColors = IconButtonDefaults.filledTonalIconButtonColors(
-        containerColor = Color.Black.copy(alpha = 0.55f),
+        containerColor = Color.Black.copy(alpha = 0.35f),
         contentColor = Color.White
     )
 
@@ -55,31 +55,31 @@ fun PlayerQuickActions(
             ) {
                 FilledTonalIconButton(
                     onClick = onSelectAudioTrack,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                     colors = buttonColors
                 ) {
                     Icon(
                         Icons.Filled.Audiotrack,
                         contentDescription = "Audio track",
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
 
                 FilledTonalIconButton(
                     onClick = onSelectSubtitleTrack,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                     colors = buttonColors
                 ) {
                     Icon(
                         Icons.Filled.ClosedCaption,
                         contentDescription = "Subtitle track",
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
 
                 FilledTonalIconButton(
                     onClick = onCycleDecodeMode,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                     colors = buttonColors
                 ) {
                     Text(
@@ -88,20 +88,20 @@ fun PlayerQuickActions(
                             DecodeMode.HWPlus -> "HW+"
                             DecodeMode.SW     -> "SW"
                         },
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = Color.White
                     )
                 }
 
                 FilledTonalIconButton(
                     onClick = onMoreOptions,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                     colors = buttonColors
                 ) {
                     Icon(
                         Icons.Filled.Settings,
                         contentDescription = "More options",
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }

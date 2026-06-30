@@ -7,8 +7,10 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,8 +46,8 @@ fun PlayerBottomControls(
         ) {
             Text(
                 text = TimeFormatter.formatMs(displayMs),
-                color = Color.White,
-                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.6f),
+                fontSize = 11.sp,
                 modifier = Modifier.width(42.dp)
             )
             Slider(
@@ -67,22 +69,29 @@ fun PlayerBottomControls(
             )
             Text(
                 text = TimeFormatter.formatMs(durationMs),
-                color = Color.White,
-                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.6f),
+                fontSize = 11.sp,
                 modifier = Modifier.width(42.dp),
                 textAlign = TextAlign.End
             )
         }
 
-        IconButton(
+        FilledIconButton(
             onClick = onTogglePlay,
-            modifier = Modifier.size(52.dp)
+            modifier = Modifier
+                .padding(top = 12.dp, bottom = 4.dp)
+                .size(52.dp)
+                .shadow(elevation = 6.dp, shape = CircleShape, ambientColor = Color(0xFF8B5CF6), spotColor = Color(0xFF8B5CF6)),
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = Color(0xFF8B5CF6),
+                contentColor = Color.White
+            )
         ) {
             Icon(
                 imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                 contentDescription = if (isPlaying) "Pause" else "Play",
                 tint = Color.White,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(28.dp)
             )
         }
     }

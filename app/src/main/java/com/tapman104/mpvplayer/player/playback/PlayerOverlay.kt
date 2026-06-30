@@ -77,8 +77,7 @@ fun PlayerOverlay(
         ) {
             PlayerTopBar(
                 fileName = fileName,
-                onBack = onOpenFile,
-                onOpenFile = onOpenFile
+                onBack = onOpenFile
             )
         }
 
