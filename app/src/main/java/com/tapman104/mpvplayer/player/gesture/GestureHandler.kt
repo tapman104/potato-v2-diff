@@ -1,4 +1,4 @@
-﻿package com.tapman104.mpvplayer.player.gesture
+package com.tapman104.mpvplayer.player.gesture
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -99,7 +99,10 @@ fun GestureHandler(
 
     // ── Helpers ───────────────────────────────────────────────────────────────
     fun resolveSeekMs(count: Int): Long = when {
-        count >= 3 -> 30_000L
+        count >= 6 -> 60_000L
+        count == 5 -> 50_000L
+        count == 4 -> 40_000L
+        count == 3 -> 30_000L
         count == 2 -> 20_000L
         else       -> 10_000L
     }
@@ -151,7 +154,7 @@ fun GestureHandler(
             exit    = fadeOut(tween(250)),
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .padding(start = 32.dp),
+                .padding(start = 56.dp),
         ) {
             SeekIndicator(label = seekLabel, isForward = false)
         }
@@ -163,7 +166,7 @@ fun GestureHandler(
             exit    = fadeOut(tween(250)),
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .padding(end = 32.dp),
+                .padding(end = 56.dp),
         ) {
             SeekIndicator(label = seekLabel, isForward = true)
         }
