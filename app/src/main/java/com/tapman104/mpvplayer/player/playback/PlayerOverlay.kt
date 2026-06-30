@@ -73,10 +73,13 @@ fun PlayerOverlay(
 
         // ── GESTURE HANDLERS (above surface, below controls) ───────────────────
         // They must be layered in this order so that volume/brightness consume first:
-        VolumeGestureHandler(
-            volumePercentage = volumePercentage,
-            onVolumeChange = { volumePercentage = it },
-            modifier = Modifier.fillMaxSize()
+        GestureHandler(
+            onSeekForward    = onSeekForward,
+            onSeekBackward   = onSeekBackward,
+            onToggleControls = { controlsVisible = !controlsVisible },
+            onSpeedOverride  = onSpeedOverride,
+            onSpeedRestore   = onSpeedRestore,
+            modifier         = Modifier.fillMaxSize(),
         )
 
         BrightnessGestureHandler(
@@ -85,13 +88,10 @@ fun PlayerOverlay(
             modifier = Modifier.fillMaxSize()
         )
 
-        GestureHandler(
-            onSeekForward    = onSeekForward,
-            onSeekBackward   = onSeekBackward,
-            onToggleControls = { controlsVisible = !controlsVisible },
-            onSpeedOverride  = onSpeedOverride,
-            onSpeedRestore   = onSpeedRestore,
-            modifier         = Modifier.fillMaxSize(),
+        VolumeGestureHandler(
+            volumePercentage = volumePercentage,
+            onVolumeChange = { volumePercentage = it },
+            modifier = Modifier.fillMaxSize()
         )
 
         // ── TOP BAR ──────────────────────────────────────────────────────────
