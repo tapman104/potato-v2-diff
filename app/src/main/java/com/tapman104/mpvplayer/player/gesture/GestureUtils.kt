@@ -1,6 +1,6 @@
 package com.tapman104.mpvplayer.player.gesture
 
-import kotlin.math.ln
+import kotlin.math.log2
 import kotlin.math.roundToInt
 
 internal object GestureUtils {
@@ -19,7 +19,7 @@ internal object GestureUtils {
     }
 
     fun calculateZoom(previousDist: Float, dist: Float, zoomAccumulator: Float): Float {
-        val zoomDelta = ln(dist / previousDist)
+        val zoomDelta = log2(dist / previousDist)
         return (zoomAccumulator + zoomDelta).coerceIn(0f, MAX_ZOOM)
     }
 }

@@ -172,6 +172,8 @@ class PlayerActivity : ComponentActivity() {
                     onSubtitleSizeChange = { viewModel.setSubtitleSize(it) },
                     onSubtitlePositionChange = { viewModel.setSubtitlePosition(it) },
                     onSubtitleAppearanceReset = { viewModel.resetSubtitleAppearance() },
+                    currentZoom = playerState.videoZoom,
+                    onZoomChange = viewModel::setVideoZoom,
                 )
 
                 if (showSettings) {

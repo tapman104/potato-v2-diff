@@ -33,6 +33,8 @@ fun PlayerScreen(
     onSubtitleSizeChange: (Float) -> Unit = {},
     onSubtitlePositionChange: (Float) -> Unit = {},
     onSubtitleAppearanceReset: () -> Unit = {},
+    currentZoom: Float = 0f,
+    onZoomChange: (Float) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -71,6 +73,8 @@ fun PlayerScreen(
             onSubtitleSizeChange = onSubtitleSizeChange,
             onSubtitlePositionChange = onSubtitlePositionChange,
             onSubtitleAppearanceReset = onSubtitleAppearanceReset,
+            currentZoom = currentZoom,
+            onZoomChange = onZoomChange,
             modifier = Modifier.fillMaxSize()
         )
     }

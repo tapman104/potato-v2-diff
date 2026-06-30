@@ -46,6 +46,8 @@ fun PlayerOverlay(
     onSubtitleSizeChange: (Float) -> Unit,
     onSubtitlePositionChange: (Float) -> Unit,
     onSubtitleAppearanceReset: () -> Unit,
+    currentZoom: Float = 0f,
+    onZoomChange: (Float) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var controlsVisible by remember { mutableStateOf(true) }
@@ -73,7 +75,7 @@ fun PlayerOverlay(
             currentPositionMs = { playerState.currentPositionMs },
             durationMs = { playerState.durationMs },
             isPlaying = playerState.isPlaying,
-            onSeekPreview = { positionMs, _ -> onSeek(positionMs) },
+            onSeekPreview = { _, _ -> },
             onSeekCommit = onSeek,
             onPauseForScrub = { if (playerState.isPlaying) onTogglePlay() },
             onResumeAfterScrub = { if (!playerState.isPlaying) onTogglePlay() },
@@ -86,7 +88,9 @@ fun PlayerOverlay(
             initialBrightness = initialBrightness,
             onBrightnessChange = onBrightnessChange,
             volumePercentage = volumePercentage,
-            onVolumeChange = { volumePercentage = it }
+            onVolumeChange = { volumePercentage = it },
+            currentZoom = currentZoom,
+            onZoomChange = onZoomChange
         )
 
         // ── TOP BAR ──────────────────────────────────────────────────────────
