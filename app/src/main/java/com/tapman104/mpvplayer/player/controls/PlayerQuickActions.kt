@@ -57,7 +57,7 @@ fun PlayerQuickActions(
             ) {
                 FilledTonalIconButton(
                     onClick = onSelectAudioTrack,
-                    modifier = Modifier.size(40.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
+                    modifier = Modifier.size(48.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
                     colors = buttonColors
                 ) {
                     Icon(
@@ -69,7 +69,7 @@ fun PlayerQuickActions(
 
                 FilledTonalIconButton(
                     onClick = onSelectSubtitleTrack,
-                    modifier = Modifier.size(40.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
+                    modifier = Modifier.size(48.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
                     colors = buttonColors
                 ) {
                     Icon(
@@ -81,7 +81,7 @@ fun PlayerQuickActions(
 
                 FilledTonalIconButton(
                     onClick = onCycleDecodeMode,
-                    modifier = Modifier.size(40.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
+                    modifier = Modifier.size(48.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
                     colors = buttonColors
                 ) {
                     Text(
@@ -97,7 +97,7 @@ fun PlayerQuickActions(
 
                 FilledTonalIconButton(
                     onClick = onMoreOptions,
-                    modifier = Modifier.size(40.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
+                    modifier = Modifier.size(48.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
                     colors = buttonColors
                 ) {
                     Icon(
