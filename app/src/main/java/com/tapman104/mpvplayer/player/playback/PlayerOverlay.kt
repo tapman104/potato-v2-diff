@@ -1,6 +1,9 @@
 package com.tapman104.mpvplayer.player.playback
 
+import android.content.Context
+import android.media.AudioManager
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -51,7 +54,13 @@ fun PlayerOverlay(
     var showAudioDialog by remember { mutableStateOf(false) }
     var showSubtitleDialog by remember { mutableStateOf(false) }
     var showSubtitleAppearanceDialog by remember { mutableStateOf(false) }
-    var volumePercentage by remember { mutableIntStateOf(0) }
+    val context = LocalContext.current
+    var volumePercentage by remember {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        mutableIntStateOf(if (max > 0) (current.toFloat() / max * 100).toInt() else 0)
+    }
 
     LaunchedEffect(controlsVisible, showAudioDialog, showSubtitleDialog, showSubtitleAppearanceDialog) {
         if (controlsVisible && !showAudioDialog && !showSubtitleDialog && !showSubtitleAppearanceDialog) {
