@@ -1,0 +1,25 @@
+package com.tapman104.mpvplayer.player.gesture
+
+interface PlayerGestureListener {
+    fun onVolumeChange(percentage: Int)
+    fun onVolumeDragStart()
+    fun onVolumeDragEnd()
+    fun onBrightnessUpdate(brightness: Float)
+    fun onBrightnessDragStart()
+    fun onBrightnessDragEnd()
+    fun onZoomUpdate(zoom: Float)
+    fun onZoomStart()
+    fun onZoomEnd()
+    fun onSeekPreview(positionMs: Long, deltaMs: Long)
+    fun onSeekStart()
+    fun onSeekCommit(positionMs: Long)
+    fun onSeekEnd()
+    fun onSeekForward()
+    fun onSeekBackward()
+    fun onContinueSeek(isRightHalf: Boolean)
+    fun onToggleControls()
+    fun onLongPressStart()
+    fun onLongPressEnd()
+    fun onSpeedOverride(speed: Float)
+    fun onSpeedRestore()
+}
