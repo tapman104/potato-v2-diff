@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -48,7 +49,14 @@ fun PlayerBottomControls(
                 text = TimeFormatter.formatMs(displayMs),
                 color = Color.White.copy(alpha = 0.6f),
                 fontSize = 11.sp,
-                modifier = Modifier.width(42.dp)
+                modifier = Modifier.width(42.dp),
+                style = androidx.compose.ui.text.TextStyle(
+                    shadow = androidx.compose.ui.graphics.Shadow(
+                        color = Color.Black.copy(alpha = 0.6f),
+                        offset = androidx.compose.ui.geometry.Offset(0f, 1f),
+                        blurRadius = 3f
+                    )
+                )
             )
             Slider(
                 value = fraction,
@@ -60,10 +68,12 @@ fun PlayerBottomControls(
                     onSeek(dragPositionMs)
                     isDragging = false
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .shadow(elevation = 3.dp, shape = RoundedCornerShape(50), ambientColor = Color.Black, spotColor = Color.Black),
                 colors = SliderDefaults.colors(
-                    thumbColor = Color(0xFF8B5CF6),
-                    activeTrackColor = Color(0xFF8B5CF6),
+                    thumbColor = Color.White,
+                    activeTrackColor = Color.White,
                     inactiveTrackColor = Color.White.copy(alpha = 0.3f)
                 )
             )
@@ -72,7 +82,14 @@ fun PlayerBottomControls(
                 color = Color.White.copy(alpha = 0.6f),
                 fontSize = 11.sp,
                 modifier = Modifier.width(42.dp),
-                textAlign = TextAlign.End
+                textAlign = TextAlign.End,
+                style = androidx.compose.ui.text.TextStyle(
+                    shadow = androidx.compose.ui.graphics.Shadow(
+                        color = Color.Black.copy(alpha = 0.6f),
+                        offset = androidx.compose.ui.geometry.Offset(0f, 1f),
+                        blurRadius = 3f
+                    )
+                )
             )
         }
 
@@ -81,16 +98,16 @@ fun PlayerBottomControls(
             modifier = Modifier
                 .padding(top = 12.dp, bottom = 4.dp)
                 .size(52.dp)
-                .shadow(elevation = 6.dp, shape = CircleShape, ambientColor = Color(0xFF8B5CF6), spotColor = Color(0xFF8B5CF6)),
+                .shadow(elevation = 10.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
             colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = Color(0xFF8B5CF6),
-                contentColor = Color.White
+                containerColor = Color.White.copy(alpha = 0.92f),
+                contentColor = Color.Black
             )
         ) {
             Icon(
                 imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                 contentDescription = if (isPlaying) "Pause" else "Play",
-                tint = Color.White,
+                tint = Color.Black,
                 modifier = Modifier.size(28.dp)
             )
         }

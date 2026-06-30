@@ -3,6 +3,7 @@ package com.tapman104.mpvplayer.player.controls
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,7 +57,7 @@ fun PlayerQuickActions(
             ) {
                 FilledTonalIconButton(
                     onClick = onSelectAudioTrack,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(40.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
                     colors = buttonColors
                 ) {
                     Icon(
@@ -67,7 +69,7 @@ fun PlayerQuickActions(
 
                 FilledTonalIconButton(
                     onClick = onSelectSubtitleTrack,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(40.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
                     colors = buttonColors
                 ) {
                     Icon(
@@ -79,7 +81,7 @@ fun PlayerQuickActions(
 
                 FilledTonalIconButton(
                     onClick = onCycleDecodeMode,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(40.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
                     colors = buttonColors
                 ) {
                     Text(
@@ -95,7 +97,7 @@ fun PlayerQuickActions(
 
                 FilledTonalIconButton(
                     onClick = onMoreOptions,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(40.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
                     colors = buttonColors
                 ) {
                     Icon(
@@ -110,7 +112,7 @@ fun PlayerQuickActions(
         // Always-visible collapse/expand toggle
         FilledTonalIconButton(
             onClick = { expanded = !expanded },
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(48.dp).shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black),
             colors = buttonColors
         ) {
             Icon(
