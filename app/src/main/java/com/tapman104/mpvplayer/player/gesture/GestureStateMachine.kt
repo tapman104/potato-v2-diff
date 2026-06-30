@@ -6,6 +6,7 @@ import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
 import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 import kotlin.math.ln
 
@@ -112,6 +113,7 @@ internal class GestureStateMachine(
                     zoomAccumulator = initialZoomProvider()
                     accumulatedDistanceChange = 0f
                     zoomConfirmed = false
+                    pressedChanges.forEach { it.consume() }
                 }
 
                 val p1 = event.changes.firstOrNull { it.id == p1Id }
@@ -120,6 +122,8 @@ internal class GestureStateMachine(
                 if (p1 != null && p2 != null && p1.pressed && p2.pressed) {
                     val dist = (p1.position - p2.position).getDistance()
                     val distChange = abs(dist - previousDist)
+
+                    event.changes.forEach { if (it.id == p1Id || it.id == p2Id) it.consume() }
 
                     if (!zoomConfirmed) {
                         accumulatedDistanceChange += distChange
@@ -130,7 +134,6 @@ internal class GestureStateMachine(
                     }
 
                     if (zoomConfirmed) {
-                        event.changes.forEach { if (it.id == p1Id || it.id == p2Id) it.consume() }
                         if (previousDist > 0f && dist > 0f) {
                             val clampedZoom = GestureUtils.calculateZoom(previousDist, dist, zoomAccumulator)
                             val zoomDelta = ln(dist / previousDist)
@@ -157,24 +160,34 @@ internal class GestureStateMachine(
                                 lastTargetPositionMs = startPositionMs
                                 listener.onSeekStart()
                             } else if (abs(deltaY) > DRAG_THRESHOLD) {
-                                if (isRightHalf) {
-                                    activeGesture = ActiveGesture.VOLUME_DRAG
-                                    maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                                    startVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                                    lastHandledVolume = startVolume
-                                    dragAccumulator = deltaY
-                                    val percentage = if (maxVolume > 0) ((startVolume.toFloat() / maxVolume) * 100).toInt() else 0
-                                    listener.onVolumeChange(percentage)
-                                    listener.onVolumeDragStart()
-                                } else {
-                                    activeGesture = ActiveGesture.BRIGHTNESS_DRAG
-                                    startBrightness = initialBrightnessProvider()
-                                    dragAccumulator = deltaY
-                                    listener.onBrightnessUpdate(startBrightness)
-                                    listener.onBrightnessDragStart()
+                                val edgeMargin = 24.dp.toPx()
+                                val isNearTopEdge = firstDown.position.y < edgeMargin
+                                val isNearBottomEdge = firstDown.position.y > screenHeightProvider() - edgeMargin
+                                val isNearLeftEdge = firstDown.position.x < edgeMargin
+                                val isNearRightEdge = firstDown.position.x > screenWidthProvider() - edgeMargin
+
+                                if (!isNearTopEdge && !isNearBottomEdge && !isNearLeftEdge && !isNearRightEdge) {
+                                    if (isRightHalf) {
+                                        activeGesture = ActiveGesture.VOLUME_DRAG
+                                        maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                                        startVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                                        lastHandledVolume = startVolume
+                                        dragAccumulator = deltaY
+                                        val percentage = if (maxVolume > 0) ((startVolume.toFloat() / maxVolume) * 100).toInt() else 0
+                                        listener.onVolumeChange(percentage)
+                                        listener.onVolumeDragStart()
+                                    } else {
+                                        activeGesture = ActiveGesture.BRIGHTNESS_DRAG
+                                        startBrightness = initialBrightnessProvider()
+                                        dragAccumulator = deltaY
+                                        listener.onBrightnessUpdate(startBrightness)
+                                        listener.onBrightnessDragStart()
+                                    }
                                 }
                             }
-                            continuationActive = false
+                            if (activeGesture != ActiveGesture.NONE) {
+                                continuationActive = false
+                            }
                         }
                     } else if (activeGesture == ActiveGesture.HORIZONTAL_SEEK) {
                         deltaX += moveX
@@ -189,11 +202,15 @@ internal class GestureStateMachine(
                     when (activeGesture) {
                         ActiveGesture.HORIZONTAL_SEEK -> {
                             val dur = durationMs()
-                            val seekMs = GestureUtils.calculateHorizontalSeekMs(deltaX, dur, screenWidthProvider())
-                            val targetPositionMs = (startPositionMs + seekMs).coerceIn(0L, dur)
-                            if (targetPositionMs != lastTargetPositionMs) {
-                                lastTargetPositionMs = targetPositionMs
-                                listener.onSeekPreview(targetPositionMs, targetPositionMs - startPositionMs)
+                            val width = screenWidthProvider()
+                            android.util.Log.d("Gesture", "durationMs: $dur, screenWidth: $width")
+                            if (dur > 0L && width > 0) {
+                                val seekMs = GestureUtils.calculateHorizontalSeekMs(deltaX, dur, width)
+                                val targetPositionMs = (startPositionMs + seekMs).coerceIn(0L, dur)
+                                if (targetPositionMs != lastTargetPositionMs) {
+                                    lastTargetPositionMs = targetPositionMs
+                                    listener.onSeekPreview(targetPositionMs, targetPositionMs - startPositionMs)
+                                }
                             }
                         }
                         ActiveGesture.VOLUME_DRAG -> {
