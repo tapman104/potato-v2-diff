@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,8 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RadialGradientShader
@@ -232,43 +233,41 @@ private fun SeekIndicator(
 @Composable
 private fun SpeedIndicator() {
     val infiniteTransition = rememberInfiniteTransition(label = "speed_pulse")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue  = 1.06f,
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue  = 1f,
         animationSpec = infiniteRepeatable(
-            animation  = tween(420, easing = FastOutSlowInEasing),
+            animation  = tween(600, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "speed_scale",
+        label = "speed_glow",
     )
 
     Box(
         modifier = Modifier
-            .scale(scale)
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFFFF6B35).copy(alpha = 0.85f),
-                        Color(0xFFFF3D71).copy(alpha = 0.85f),
-                    )
-                )
+            .alpha(glowAlpha)
+            .clip(RoundedCornerShape(28.dp))
+            .background(Color(0xFF1E1E1E).copy(alpha = 0.92f))
+            .border(
+                width = 1.dp,
+                color = Color(0xFF8B5CF6).copy(alpha = 0.5f),
+                shape = RoundedCornerShape(28.dp)
             )
-            .padding(horizontal = 18.dp, vertical = 10.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Rounded.Speed,
                 contentDescription = "Speed override",
-                tint = Color.White,
-                modifier = Modifier.size(20.dp),
+                tint = Color(0xFF8B5CF6),
+                modifier = Modifier.size(18.dp),
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = "2×  Speed",
+                text = "2× Speed",
                 color = Color.White,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
             )
         }
     }
