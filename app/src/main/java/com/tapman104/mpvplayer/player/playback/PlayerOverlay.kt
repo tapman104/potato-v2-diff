@@ -73,7 +73,7 @@ fun PlayerOverlay(
             currentPositionMs = { playerState.currentPositionMs },
             durationMs = { playerState.durationMs },
             isPlaying = playerState.isPlaying,
-            onSeekPreview = { _, _ -> },
+            onSeekPreview = { positionMs, _ -> onSeek(positionMs) },
             onSeekCommit = onSeek,
             onPauseForScrub = { if (playerState.isPlaying) onTogglePlay() },
             onResumeAfterScrub = { if (!playerState.isPlaying) onTogglePlay() },

@@ -93,7 +93,9 @@ internal class GestureStateMachine(
                 continue
             }
 
-            if (event.changes.any { it.isConsumed }) {
+            // Only abort on external consumption. During PINCH_ZOOM we own the
+            // consumed state ourselves, so skip the check to avoid self-aborting.
+            if (activeGesture != ActiveGesture.PINCH_ZOOM && event.changes.any { it.isConsumed }) {
                 aborted = true
                 break
             }
