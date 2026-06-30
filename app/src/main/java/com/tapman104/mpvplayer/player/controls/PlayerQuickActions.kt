@@ -31,7 +31,7 @@ private fun Modifier.glassButtonBlur(): Modifier =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         this.graphicsLayer {
             renderEffect = RenderEffect
-                .createBackdropBlurEffect(20f, 20f, Shader.TileMode.CLAMP)
+                .createBlurEffect(20f, 20f, Shader.TileMode.CLAMP)
                 .asComposeRenderEffect()
         }
     } else {

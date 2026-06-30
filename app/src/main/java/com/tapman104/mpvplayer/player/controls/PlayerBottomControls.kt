@@ -158,7 +158,7 @@ private fun SeekPill(
     val blurModifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         Modifier.graphicsLayer {
             renderEffect = RenderEffect
-                .createBackdropBlurEffect(20f, 20f, Shader.TileMode.CLAMP)
+                .createBlurEffect(20f, 20f, Shader.TileMode.CLAMP)
                 .asComposeRenderEffect()
         }
     } else {
