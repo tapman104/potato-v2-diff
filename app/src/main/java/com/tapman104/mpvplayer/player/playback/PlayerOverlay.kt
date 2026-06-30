@@ -71,7 +71,6 @@ fun PlayerOverlay(
 
     Box(modifier = modifier.fillMaxSize()) {
 
-        // ── GESTURE HANDLERS (above surface, below controls) ───────────────────
         GestureHandler(
             currentPositionMs = playerState.currentPositionMs,
             durationMs = playerState.durationMs,
