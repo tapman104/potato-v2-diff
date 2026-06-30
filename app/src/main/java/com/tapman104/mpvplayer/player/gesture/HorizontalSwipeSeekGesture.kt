@@ -56,7 +56,7 @@ fun Modifier.horizontalSwipeSeekGesture(
             val offset = firstDown.position
             // Center zone only
             if (offset.y < topMargin || offset.y > size.height - bottomMargin ||
-                offset.x < leftMargin || offset.x > size.width - rightMargin) {
+                offset.x < (size.width / 2f) - leftMargin || offset.x > (size.width / 2f) + rightMargin) {
                 return@awaitEachGesture
             }
 
@@ -73,6 +73,14 @@ fun Modifier.horizontalSwipeSeekGesture(
                 
                 val change = event.changes.firstOrNull { it.id == pointerId }
                 if (change != null) {
+                    if (change.isConsumed) {
+                        if (isCommitted) {
+                            currentOnSeekEnd()
+                            isCommitted = false
+                        }
+                        break
+                    }
+
                     deltaX += change.position.x - change.previousPosition.x
                     deltaY += change.position.y - change.previousPosition.y
 

@@ -110,9 +110,8 @@ fun GestureHandler(
     LaunchedEffect(labelTrigger) {
         if (labelTrigger > 0) {
             showSeekIndicator = true
-            delay(700L)
+            delay(650L)
             showSeekIndicator = false
-            delay(300L)
             seekLabel     = ""
             seekDirection = SeekDirection.None
             tapCount      = 0

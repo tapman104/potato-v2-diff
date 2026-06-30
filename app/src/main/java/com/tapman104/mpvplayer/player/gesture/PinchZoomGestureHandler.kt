@@ -135,6 +135,13 @@ fun Modifier.pinchZoomGesture(
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Main)
                 
+                if (event.changes.any { it.isConsumed }) {
+                    if (zoomConfirmed) {
+                        currentOnZoomEnd()
+                    }
+                    break
+                }
+
                 val pressedCount = event.changes.count { it.pressed }
                 if (pressedCount != 2) {
                     if (zoomConfirmed) {
