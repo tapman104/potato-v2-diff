@@ -28,12 +28,14 @@ fun Modifier.gestureCoordinator(
             initialZoomProvider = { currentInitialZoom },
             initialBrightnessProvider = { currentInitialBrightness },
             listenerProvider = { currentListener },
-            screenWidth = size.width,
-            screenHeight = size.height
+            screenWidthProvider = { size.width },
+            screenHeightProvider = { size.height }
         )
 
         awaitEachGesture {
-            stateMachine.processGesture(this)
+            with(stateMachine) {
+                processGesture()
+            }
         }
     }
 }

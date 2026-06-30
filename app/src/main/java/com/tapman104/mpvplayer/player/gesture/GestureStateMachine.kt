@@ -16,8 +16,8 @@ internal class GestureStateMachine(
     private val initialZoomProvider: () -> Float,
     private val initialBrightnessProvider: () -> Float,
     private val listenerProvider: () -> PlayerGestureListener,
-    private val screenWidth: Int,
-    private val screenHeight: Int
+    private val screenWidthProvider: () -> Int,
+    private val screenHeightProvider: () -> Int
 ) {
     private var continuationActive = false
     private var continuationSide = false
@@ -25,18 +25,18 @@ internal class GestureStateMachine(
 
     private val listener get() = listenerProvider()
 
-    suspend fun processGesture(scope: AwaitPointerEventScope) = with(scope) {
+    suspend fun AwaitPointerEventScope.processGesture() {
         val firstDown = awaitFirstDown(requireUnconsumed = false)
         if (firstDown.isConsumed) return
         
         val startX = firstDown.position.x
-        val isRightHalf = startX >= screenWidth / 2f
+        val isRightHalf = startX >= screenWidthProvider() / 2f
         val pointerId = firstDown.id
-        val startTime = System.currentTimeMillis()
+        val startTime = android.os.SystemClock.uptimeMillis()
 
         if (checkContinuationTimeout(isRightHalf)) {
             listener.onContinueSeek(isRightHalf)
-            lastContinuationTime = System.currentTimeMillis()
+            lastContinuationTime = android.os.SystemClock.uptimeMillis()
             // Return to let awaitEachGesture wait for pointer up
             return
         }
@@ -69,7 +69,7 @@ internal class GestureStateMachine(
         var zoomAccumulator = initialZoomProvider()
 
         while (true) {
-            val elapsed = System.currentTimeMillis() - startTime
+            val elapsed = android.os.SystemClock.uptimeMillis() - startTime
             val timeRemaining = if (activeGesture == ActiveGesture.NONE) {
                 (LONG_PRESS_TIMEOUT - elapsed).coerceAtLeast(1L)
             } else {
@@ -189,7 +189,7 @@ internal class GestureStateMachine(
                     when (activeGesture) {
                         ActiveGesture.HORIZONTAL_SEEK -> {
                             val dur = durationMs()
-                            val seekMs = GestureUtils.calculateHorizontalSeekMs(deltaX, dur, screenWidth)
+                            val seekMs = GestureUtils.calculateHorizontalSeekMs(deltaX, dur, screenWidthProvider())
                             val targetPositionMs = (startPositionMs + seekMs).coerceIn(0L, dur)
                             if (targetPositionMs != lastTargetPositionMs) {
                                 lastTargetPositionMs = targetPositionMs
@@ -197,7 +197,7 @@ internal class GestureStateMachine(
                             }
                         }
                         ActiveGesture.VOLUME_DRAG -> {
-                            val newVolume = GestureUtils.calculateVolume(startVolume, dragAccumulator, screenHeight, maxVolume)
+                            val newVolume = GestureUtils.calculateVolume(startVolume, dragAccumulator, screenHeightProvider(), maxVolume)
                             if (newVolume != lastHandledVolume) {
                                 lastHandledVolume = newVolume
                                 val newPercentage = if (maxVolume > 0) ((newVolume.toFloat() / maxVolume) * 100).toInt() else 0
@@ -205,7 +205,7 @@ internal class GestureStateMachine(
                             }
                         }
                         ActiveGesture.BRIGHTNESS_DRAG -> {
-                            val newBrightness = GestureUtils.calculateBrightness(startBrightness, dragAccumulator, screenHeight)
+                            val newBrightness = GestureUtils.calculateBrightness(startBrightness, dragAccumulator, screenHeightProvider())
                             listener.onBrightnessUpdate(newBrightness)
                         }
                         else -> {}
@@ -222,7 +222,7 @@ internal class GestureStateMachine(
     }
 
     private fun checkContinuationTimeout(isRightHalf: Boolean): Boolean {
-        val now = System.currentTimeMillis()
+        val now = android.os.SystemClock.uptimeMillis()
         if (continuationActive && (now - lastContinuationTime) > CONTINUATION_TIMEOUT) {
             continuationActive = false
         }
@@ -284,7 +284,7 @@ internal class GestureStateMachine(
         try {
             withTimeout(DOUBLE_TAP_TIMEOUT) {
                 val secondDown = awaitFirstDown(requireUnconsumed = false)
-                val isSecondTapRightHalf = secondDown.position.x >= screenWidth / 2f
+                val isSecondTapRightHalf = secondDown.position.x >= screenWidthProvider() / 2f
                 if (isSecondTapRightHalf == isRightHalf) {
                     isDoubleTap = true
                 }
@@ -297,7 +297,7 @@ internal class GestureStateMachine(
             if (isRightHalf) listener.onSeekForward() else listener.onSeekBackward()
             continuationActive = true
             continuationSide = isRightHalf
-            lastContinuationTime = System.currentTimeMillis()
+            lastContinuationTime = android.os.SystemClock.uptimeMillis()
         } else {
             listener.onToggleControls()
         }
