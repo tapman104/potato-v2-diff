@@ -16,7 +16,7 @@ fun PlayerTopBar(
 ) {
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Black.copy(alpha = 0.3f)
+            containerColor = Color.Transparent
         ),
         title = {
             Text(
