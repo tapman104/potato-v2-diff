@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tapman104.mpvplayer.player.model.DecodeMode
@@ -96,15 +97,21 @@ fun PlayerQuickActions(
                     colors = buttonColors,
                     border = buttonBorder
                 ) {
-                    Text(
-                        text = when (decodeMode) {
-                            DecodeMode.HW     -> "HW"
-                            DecodeMode.HWPlus -> "HW+"
-                            DecodeMode.SW     -> "SW"
-                        },
-                        fontSize = 10.sp,
-                        color = Color.White.copy(alpha = 0.95f)
-                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Text(
+                            text = when (decodeMode) {
+                                DecodeMode.HW     -> "HW"
+                                DecodeMode.HWPlus -> "HW+"
+                                DecodeMode.SW     -> "SW"
+                            },
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White.copy(alpha = 0.95f)
+                        )
+                    }
                 }
 
                 OutlinedIconButton(
