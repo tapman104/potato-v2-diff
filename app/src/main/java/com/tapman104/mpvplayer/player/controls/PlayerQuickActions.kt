@@ -1,8 +1,5 @@
 package com.tapman104.mpvplayer.player.controls
 
-import android.graphics.RenderEffect
-import android.graphics.Shader
-import android.os.Build
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -20,23 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tapman104.mpvplayer.player.model.DecodeMode
 
-/** Backdrop-blur modifier matching the SeekPill treatment in PlayerBottomControls. */
-private fun Modifier.glassButtonBlur(): Modifier =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        this.graphicsLayer {
-            renderEffect = RenderEffect
-                .createBlurEffect(20f, 20f, Shader.TileMode.CLAMP)
-                .asComposeRenderEffect()
-        }
-    } else {
-        this // semi-transparent containerColor provides legibility on API < 31
-    }
 
 @Composable
 fun PlayerQuickActions(
@@ -49,15 +33,14 @@ fun PlayerQuickActions(
     var expanded by remember { mutableStateOf(true) }
 
     val buttonColors = IconButtonDefaults.outlinedIconButtonColors(
-        containerColor = Color.Black.copy(alpha = 0.10f),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
         contentColor = Color.White.copy(alpha = 0.95f)
     )
-    val buttonBorder = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
+    val buttonBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
-    /** Shadow + blur modifier reused by every button. */
+    /** Shadow modifier reused by every button. */
     fun Modifier.glassButton(): Modifier = this
         .shadow(elevation = 3.dp, shape = CircleShape, ambientColor = Color.Black, spotColor = Color.Black)
-        .glassButtonBlur()
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
