@@ -160,6 +160,7 @@ internal class GestureStateMachine(
                                 activeGesture = ActiveGesture.HORIZONTAL_SEEK
                                 startPositionMs = currentPositionMs()
                                 lastTargetPositionMs = startPositionMs
+                                deltaX = 0f
                                 listener.onSeekStart()
                             } else if (abs(deltaY) > DRAG_THRESHOLD) {
                                 val edgeMargin = 24.dp.toPx()
@@ -174,14 +175,14 @@ internal class GestureStateMachine(
                                         maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                                         startVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
                                         lastHandledVolume = startVolume
-                                        dragAccumulator = deltaY
+                                        dragAccumulator = 0f
                                         val percentage = if (maxVolume > 0) ((startVolume.toFloat() / maxVolume) * 100).toInt() else 0
                                         listener.onVolumeChange(percentage)
                                         listener.onVolumeDragStart()
                                     } else {
                                         activeGesture = ActiveGesture.BRIGHTNESS_DRAG
                                         startBrightness = initialBrightnessProvider()
-                                        dragAccumulator = deltaY
+                                        dragAccumulator = 0f
                                         listener.onBrightnessUpdate(startBrightness)
                                         listener.onBrightnessDragStart()
                                     }
