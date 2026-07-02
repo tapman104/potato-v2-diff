@@ -65,9 +65,9 @@ fun GestureHandler(
     var localZoomLog2 by remember { mutableFloatStateOf(currentZoom) }
     var localPanX by remember { mutableFloatStateOf(0f) }
     var localPanY by remember { mutableFloatStateOf(0f) }
-    var localVolume by remember {
+    var localVolumePercent by remember {
         val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-        mutableIntStateOf(currentVol)
+        mutableFloatStateOf(if (maxMusicVol > 0) (currentVol / maxMusicVol) * 100f else 0f)
     }
     var localBrightness by remember { mutableFloatStateOf(if (initialBrightness >= 0f) initialBrightness else 0.5f) }
 
@@ -111,7 +111,7 @@ fun GestureHandler(
             override val currentZoomLog2: Float get() = localZoomLog2
             override val currentPanX: Float get() = localPanX
             override val currentPanY: Float get() = localPanY
-            override val volume: Float get() = if (maxMusicVol > 0) (localVolume / maxMusicVol) * 100f else 0f
+            override val volume: Float get() = localVolumePercent
             override val maxStandardVolume: Float get() = 100f
             override val maxBoostVolume: Float get() = 130f
             override val brightness: Float get() = localBrightness
@@ -142,14 +142,14 @@ fun GestureHandler(
             }
 
             override fun setVolume(volume: Float) {
-                val targetVol = ((volume / 100f) * maxMusicVol).roundToInt().coerceIn(0, maxMusicVol.toInt())
-                localVolume = targetVol
+                localVolumePercent = volume.coerceIn(0f, 130f)
+                val targetVol = ((localVolumePercent.coerceIn(0f, 100f) / 100f) * maxMusicVol).roundToInt().coerceIn(0, maxMusicVol.toInt())
                 try {
                     audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVol, 0)
                 } catch (e: Exception) {
                     // ignore if permission denied
                 }
-                val pct = volume.roundToInt()
+                val pct = localVolumePercent.roundToInt()
                 volPercentageDisplay = pct
                 onVolumeChange(pct)
             }
@@ -276,6 +276,7 @@ fun GestureHandler(
                         panelShown = PanelShown.NONE,
                         density = density
                     )
+                    var previousActiveCount = 1
 
                     while (true) {
                         val event = awaitPointerEvent()
@@ -293,6 +294,26 @@ fun GestureHandler(
                                 activePointerCount = 0
                             )
                             break
+                        }
+
+                        if (previousActiveCount >= 2 && activeCount == 1) {
+                            val released = changes.firstOrNull { !it.pressed } ?: firstPressed
+                            stateMachine.onPointerUp(
+                                pointerId = released.id.value,
+                                x = released.position.x,
+                                y = released.position.y,
+                                timeMs = released.uptimeMillis,
+                                activePointerCount = 1
+                            )
+                            stateMachine.onPointerDown(
+                                pointerId = firstPressed.id.value,
+                                x = firstPressed.position.x,
+                                y = firstPressed.position.y,
+                                timeMs = firstPressed.uptimeMillis,
+                                activePointerCount = 1,
+                                panelShown = PanelShown.NONE,
+                                density = density
+                            )
                         }
 
                         var span = 0f
@@ -324,6 +345,7 @@ fun GestureHandler(
                             midpointY = midY
                         )
                         changes.forEach { it.consume() }
+                        previousActiveCount = activeCount
                     }
                 }
             }
