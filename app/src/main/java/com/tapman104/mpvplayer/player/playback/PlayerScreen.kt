@@ -16,7 +16,7 @@ fun PlayerScreen(
     playerState: PlayerState,
     surfaceView: SurfaceView,
     onTogglePlay: () -> Unit,
-    onSeek: (Long) -> Unit,
+    onSeek: (Long, Boolean) -> Unit,
     initialBrightness: Float = -1f,
     onBrightnessChange: (Float) -> Unit = {},
     onOpenFile: () -> Unit,

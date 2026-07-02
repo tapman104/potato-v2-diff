@@ -82,9 +82,9 @@ class PlayerViewModel(
     fun pause() = controller.executor.pause()
     fun togglePlay() = controller.executor.togglePlay()
     
-    fun seekTo(positionMs: Long) {
+    fun seekTo(positionMs: Long, precise: Boolean = true) {
         lastSeekTime = System.currentTimeMillis()
-        controller.executor.seek(positionMs / 1000.0)
+        controller.executor.seek(positionMs / 1000.0, precise)
     }
     
     fun seekRelative(offsetMs: Long) {

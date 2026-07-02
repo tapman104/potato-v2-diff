@@ -147,7 +147,7 @@ class PlayerActivity : ComponentActivity() {
                     playerState = playerState,
                     surfaceView = surfaceView,
                     onTogglePlay = { viewModel.togglePlay() },
-                    onSeek = { viewModel.seekTo(it) },
+                    onSeek = { pos, precise -> viewModel.seekTo(pos, precise) },
                     initialBrightness = initialBrightness,
                     onBrightnessChange = { newBrightness ->
                         val layoutParams = window.attributes

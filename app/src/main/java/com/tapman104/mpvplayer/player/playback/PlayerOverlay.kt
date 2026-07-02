@@ -33,7 +33,7 @@ fun PlayerOverlay(
     initialBrightness: Float = -1f,
     onBrightnessChange: (Float) -> Unit = {},
     onTogglePlay: () -> Unit,
-    onSeek: (Long) -> Unit,
+    onSeek: (Long, Boolean) -> Unit,
     onSeekForward: (Long) -> Unit,
     onSeekBackward: (Long) -> Unit,
     onSpeedOverride: (Float) -> Unit,
@@ -144,7 +144,7 @@ fun PlayerOverlay(
                 currentPositionMs = playerState.currentPositionMs,
                 durationMs = playerState.durationMs,
                 onTogglePlay = onTogglePlay,
-                onSeek = onSeek
+                onSeek = { pos -> onSeek(pos, true) }
             )
         }
 

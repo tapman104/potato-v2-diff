@@ -68,9 +68,10 @@ class MpvCommandExecutor {
         }
     }
 
-    fun seek(seconds: Double) {
+    fun seek(seconds: Double, precise: Boolean = true) {
         execute {
-            MPVLib.command("seek", seconds.toString(), "absolute", "exact")
+            val mode = if (precise) "exact" else "keyframes"
+            MPVLib.command("seek", seconds.toString(), "absolute", mode)
         }
     }
 

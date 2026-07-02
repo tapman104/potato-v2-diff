@@ -50,7 +50,7 @@ interface MpvPlayerController {
 
     fun pause()
     fun unpause()
-    fun seekTo(positionMs: Long)
+    fun seekTo(positionMs: Long, precise: Boolean = false)
     fun setPlaybackSpeedRamped(targetSpeed: Float, stepCount: Int = 5, stepDurationMs: Long = 16L)
     fun setVolume(volume: Float)
     fun setBrightness(brightness: Float)
@@ -190,7 +190,8 @@ sealed class GestureState {
         val confirmationX: Float, // Baseline set at confirmation to avoid delta jumps
         val currentX: Float,
         val targetPositionMs: Long,
-        val sensitivityMsPerPx: Float
+        val sensitivityMsPerPx: Float,
+        val lastSeekIssuedAtMs: Long = 0L
     ) : GestureState()
 }
 
@@ -305,7 +306,7 @@ class MpvGestureStateMachine(private val controller: MpvPlayerController) {
                     }
 
                     // Execute seek relative to current target
-                    controller.seekTo(controller.currentPositionMs + (stepSeekSec * 1000L * directionSign))
+                    controller.seekTo(controller.currentPositionMs + (stepSeekSec * 1000L * directionSign), precise = true)
                     
                     val label = "${if (isForward) "+" else "-"}${newAccumulatedSec}s"
                     controller.showDoubleTapSeekOverlay(newAccumulatedSec, isForward, label)
@@ -397,7 +398,7 @@ class MpvGestureStateMachine(private val controller: MpvPlayerController) {
                 }
             }
             is GestureState.VerticalSwipe -> handleVerticalSwipeMove(state, y)
-            is GestureState.HorizontalSeek -> handleHorizontalSeekMove(state, x)
+            is GestureState.HorizontalSeek -> handleHorizontalSeekMove(state, x, timeMs)
             is GestureState.SinglePan -> handleSinglePanMove(state, x, y)
             is GestureState.PinchZoomPan -> handlePinchZoomPanMove(state, span, midpointX, midpointY)
             is GestureState.LongPress -> handleLongPressMove(state, x, density)
@@ -446,6 +447,9 @@ class MpvGestureStateMachine(private val controller: MpvPlayerController) {
                 transitionTo(GestureState.Idle)
             }
             is GestureState.HorizontalSeek -> {
+                // Issue one final precise seek to guarantee frame accuracy on release
+                controller.seekTo(state.targetPositionMs, precise = true)
+                
                 // Spec: On release: if it was playing before, unpause; if it was already paused, stay paused.
                 if (state.wasPlayingBeforeScrub) {
                     controller.unpause()
@@ -700,16 +704,24 @@ class MpvGestureStateMachine(private val controller: MpvPlayerController) {
         }
     }
 
-    private fun handleHorizontalSeekMove(state: GestureState.HorizontalSeek, currentX: Float) {
+    private fun handleHorizontalSeekMove(state: GestureState.HorizontalSeek, currentX: Float, timeMs: Long) {
         // Spec: Live preview: targetMs = clamp(initialPositionMs + ΔX * sensitivity, 0, durationMs), seek continuously as finger moves.
         // Reads from confirmed baseline (confirmationX), not original pointer-down origin.
         val deltaX = currentX - state.confirmationX
         val deltaMs = (deltaX * state.sensitivityMsPerPx).roundToLong()
         val targetMs = max(0L, min(state.initialVideoPositionMs + deltaMs, state.durationMs))
         
-        controller.seekTo(targetMs)
+        var newLastSeekIssuedAtMs = state.lastSeekIssuedAtMs
+        if (timeMs - state.lastSeekIssuedAtMs >= 33L) {
+            controller.seekTo(targetMs, precise = false)
+            newLastSeekIssuedAtMs = timeMs
+        }
         
-        val updatedState = state.copy(currentX = currentX, targetPositionMs = targetMs)
+        val updatedState = state.copy(
+            currentX = currentX,
+            targetPositionMs = targetMs,
+            lastSeekIssuedAtMs = newLastSeekIssuedAtMs
+        )
         updateHorizontalSeekUi(updatedState)
         transitionTo(updatedState)
     }

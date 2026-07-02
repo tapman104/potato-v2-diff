@@ -38,7 +38,7 @@ fun GestureHandler(
     durationMs: () -> Long,
     isPlaying: Boolean,
     onSeekPreview: (Long, Long) -> Unit,
-    onSeekCommit: (Long) -> Unit,
+    onSeekCommit: (Long, Boolean) -> Unit,
     onPauseForScrub: () -> Unit,
     onResumeAfterScrub: () -> Unit,
     onSeekForward: (Long) -> Unit,
@@ -129,8 +129,8 @@ fun GestureHandler(
                 if (!isPlaying) onResumeAfterScrub()
             }
 
-            override fun seekTo(positionMs: Long) {
-                onSeekCommit(positionMs)
+            override fun seekTo(positionMs: Long, precise: Boolean) {
+                onSeekCommit(positionMs, precise)
             }
 
             override fun setPlaybackSpeedRamped(targetSpeed: Float, stepCount: Int, stepDurationMs: Long) {
