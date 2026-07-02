@@ -2,8 +2,11 @@ package com.tapman104.mpvplayer.player.gesture
 
 import android.content.Context
 import android.media.AudioManager
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -11,26 +14,23 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-
-// ---------------------------------------------------------------------------
-// Seek direction enum
-// ---------------------------------------------------------------------------
-
-enum class SeekDirection { Forward, Backward, None }
-
-// ---------------------------------------------------------------------------
-// GestureHandler
-// ---------------------------------------------------------------------------
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
- * Integration point that wires all gesture layers together and renders the seek-feedback UI.
- *
- * The seek amount is resolved inside this composable and propagated to [onSeekForward] /
- * [onSeekBackward] as absolute-offset lambdas of type `(Long) -> Unit`.
+ * Integration point that wires Compose touch events to [MpvGestureStateMachine]
+ * and renders the visual feedback indicators.
  */
 @Composable
 fun GestureHandler(
@@ -54,229 +54,331 @@ fun GestureHandler(
     volumePercentage: Int = 0,
     onVolumeChange: (Int) -> Unit = {},
 ) {
-    // ── State ────────────────────────────────────────────────────────────────
-    var seekDirection    by remember { mutableStateOf(SeekDirection.None) }
-    var seekLabel        by remember { mutableStateOf("") }
-    var tapCount         by remember { mutableIntStateOf(0) }
-    var lastTapSide      by remember { mutableStateOf("") }
-    var showSeekIndicator by remember { mutableStateOf(false) }
-    var labelTrigger     by remember { mutableIntStateOf(0) }
-    var isLongPressing   by remember { mutableStateOf(false) }
-
-    // ── Local state for horizontal swipe ─────────────────────────────────────
-    var wasPlayingBeforeScrub by remember { mutableStateOf(false) }
-    var showHorizontalSeekIndicator by remember { mutableStateOf(false) }
-    var horizontalSeekTrigger by remember { mutableIntStateOf(0) }
-    var previewPositionMs by remember { mutableStateOf(0L) }
-    var previewDeltaMs by remember { mutableStateOf(0L) }
-
-    // ── Local state for pinch zoom ───────────────────────────────────────────
-    var isZooming by remember { mutableStateOf(false) }
-    var showZoomIndicator by remember { mutableStateOf(false) }
-    var zoomTrigger by remember { mutableIntStateOf(0) }
-    var localZoom by remember { mutableFloatStateOf(currentZoom) }
-
-    // ── Local state for volume and brightness ────────────────────────────────
+    val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
-    
-    var isVolumeDragging by remember { mutableStateOf(false) }
-    var showVolumeIndicator by remember { mutableStateOf(false) }
-    var volumeHideTrigger by remember { mutableIntStateOf(0) }
+    val maxMusicVol = remember { audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).toFloat() }
 
-    var isBrightnessDragging by remember { mutableStateOf(false) }
-    var showBrightnessIndicator by remember { mutableStateOf(false) }
-    var brightnessHideTrigger by remember { mutableIntStateOf(0) }
-    var currentBrightness by remember { mutableFloatStateOf(initialBrightness) }
+    var screenWidthPx by remember { mutableFloatStateOf(1080f) }
+    var screenHeightPx by remember { mutableFloatStateOf(1920f) }
 
-    // ── Auto-hide timers ─────────────────────────────────────────────────────
-    LaunchedEffect(labelTrigger) {
-        if (labelTrigger > 0) {
-            showSeekIndicator = true
-            delay(650L)
-            showSeekIndicator = false
-            tapCount      = 0
-            lastTapSide   = ""
-            delay(250L)
-            seekLabel     = ""
-            seekDirection = SeekDirection.None
-        }
+    var localZoomLog2 by remember { mutableFloatStateOf(currentZoom) }
+    var localPanX by remember { mutableFloatStateOf(0f) }
+    var localPanY by remember { mutableFloatStateOf(0f) }
+    var localVolume by remember {
+        val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        mutableIntStateOf(currentVol)
     }
+    var localBrightness by remember { mutableFloatStateOf(if (initialBrightness >= 0f) initialBrightness else 0.5f) }
+
+    var doubleTapSeekSec by remember { mutableIntStateOf(0) }
+    var doubleTapForward by remember { mutableStateOf(true) }
+    var doubleTapLabel by remember { mutableStateOf("") }
+    var showDoubleTapOverlay by remember { mutableStateOf(false) }
+
+    var hSeekCurrentLabel by remember { mutableStateOf("") }
+    var hSeekDeltaLabel by remember { mutableStateOf("") }
+    var showHSeekOverlay by remember { mutableStateOf(false) }
+
+    var speedValue by remember { mutableFloatStateOf(1.0f) }
+    var showSpeedOverlay by remember { mutableStateOf(false) }
+
+    var volPercentageDisplay by remember { mutableIntStateOf(volumePercentage) }
+    var showVolOverlay by remember { mutableStateOf(false) }
+
+    var brightPercentageDisplay by remember {
+        mutableIntStateOf(if (initialBrightness >= 0f) (initialBrightness * 100).roundToInt() else 50)
+    }
+    var showBrightOverlay by remember { mutableStateOf(false) }
+
+    var showZoomOverlay by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentZoom) {
-        if (!isZooming) {
-            localZoom = currentZoom
-        }
+        localZoomLog2 = currentZoom
     }
-
-    LaunchedEffect(zoomTrigger, isZooming) {
-        if (isZooming) {
-            showZoomIndicator = true
-        } else if (zoomTrigger > 0) {
-            showZoomIndicator = true
-            delay(700L)
-            showZoomIndicator = false
-        }
-    }
-
-    LaunchedEffect(horizontalSeekTrigger) {
-        if (horizontalSeekTrigger > 0) {
-            showHorizontalSeekIndicator = true
-            delay(700L)
-            showHorizontalSeekIndicator = false
-        }
-    }
-
     LaunchedEffect(initialBrightness) {
-        if (!isBrightnessDragging) {
-            currentBrightness = initialBrightness
+        if (initialBrightness >= 0f) {
+            localBrightness = initialBrightness
+            brightPercentageDisplay = (initialBrightness * 100).roundToInt()
         }
     }
 
-    LaunchedEffect(volumeHideTrigger, isVolumeDragging) {
-        if (isVolumeDragging) {
-            showVolumeIndicator = true
-        } else if (volumeHideTrigger > 0) {
-            showVolumeIndicator = true
-            delay(700L)
-            showVolumeIndicator = false
+    val controller = remember(audioManager, maxMusicVol) {
+        object : MpvPlayerController {
+            override val durationMs: Long get() = durationMs()
+            override val currentPositionMs: Long get() = currentPositionMs()
+            override val isPaused: Boolean get() = !isPlaying
+            override val currentZoomLog2: Float get() = localZoomLog2
+            override val currentPanX: Float get() = localPanX
+            override val currentPanY: Float get() = localPanY
+            override val volume: Float get() = if (maxMusicVol > 0) (localVolume / maxMusicVol) * 100f else 0f
+            override val maxStandardVolume: Float get() = 100f
+            override val maxBoostVolume: Float get() = 130f
+            override val brightness: Float get() = localBrightness
+            override val screenWidthPx: Float get() = screenWidthPx
+            override val screenHeightPx: Float get() = screenHeightPx
+            override val isVolumeSideRight: Boolean get() = true
+            override val doubleTapSeekAreaWidthPercent: Int get() = 30
+            override val isDynamicSpeedOverlayEnabled: Boolean get() = true
+
+            override fun pause() {
+                if (isPlaying) onPauseForScrub()
+            }
+
+            override fun unpause() {
+                if (!isPlaying) onResumeAfterScrub()
+            }
+
+            override fun seekTo(positionMs: Long) {
+                onSeekCommit(positionMs)
+            }
+
+            override fun setPlaybackSpeedRamped(targetSpeed: Float, stepCount: Int, stepDurationMs: Long) {
+                if (targetSpeed != 1.0f) {
+                    onSpeedOverride(targetSpeed)
+                } else {
+                    onSpeedRestore()
+                }
+            }
+
+            override fun setVolume(volume: Float) {
+                val targetVol = ((volume / 100f) * maxMusicVol).roundToInt().coerceIn(0, maxMusicVol.toInt())
+                localVolume = targetVol
+                try {
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVol, 0)
+                } catch (e: Exception) {
+                    // ignore if permission denied
+                }
+                val pct = volume.roundToInt()
+                volPercentageDisplay = pct
+                onVolumeChange(pct)
+            }
+
+            override fun setBrightness(brightness: Float) {
+                localBrightness = brightness.coerceIn(0f, 1f)
+                val pct = (localBrightness * 100).roundToInt()
+                brightPercentageDisplay = pct
+                onBrightnessChange(localBrightness)
+            }
+
+            override fun setZoomAndPan(zoomLog2: Float, panX: Float, panY: Float) {
+                localZoomLog2 = zoomLog2
+                localPanX = panX
+                localPanY = panY
+                onZoomChange(zoomLog2)
+            }
+
+            override fun showDoubleTapSeekOverlay(seekAmountSec: Int, isForward: Boolean, label: String) {
+                doubleTapSeekSec = seekAmountSec
+                doubleTapForward = isForward
+                doubleTapLabel = label
+                showDoubleTapOverlay = true
+                if (isForward) {
+                    onSeekForward(seekAmountSec * 1000L)
+                } else {
+                    onSeekBackward(seekAmountSec * 1000L)
+                }
+            }
+
+            override fun hideDoubleTapSeekOverlay() {
+                showDoubleTapOverlay = false
+            }
+
+            override fun showHorizontalSeekOverlay(currentTimeLabel: String, deltaLabel: String) {
+                hSeekCurrentLabel = currentTimeLabel
+                hSeekDeltaLabel = deltaLabel
+                showHSeekOverlay = true
+            }
+
+            override fun hideHorizontalSeekOverlay(delayMs: Long) {
+                if (delayMs > 0) {
+                    coroutineScope.launch {
+                        delay(delayMs)
+                        showHSeekOverlay = false
+                    }
+                } else {
+                    showHSeekOverlay = false
+                }
+            }
+
+            override fun showSpeedOverlay(speed: Float, interactiveSliderIndex: Int?) {
+                speedValue = speed
+                showSpeedOverlay = true
+            }
+
+            override fun hideSpeedOverlay() {
+                showSpeedOverlay = false
+            }
+
+            override fun showVolumeOverlay(percentage: Int) {
+                volPercentageDisplay = percentage
+                showVolOverlay = true
+            }
+
+            override fun hideVolumeOverlay() {
+                showVolOverlay = false
+            }
+
+            override fun showBrightnessOverlay(percentage: Int) {
+                brightPercentageDisplay = percentage
+                showBrightOverlay = true
+            }
+
+            override fun hideBrightnessOverlay() {
+                showBrightOverlay = false
+            }
+
+            override fun showPinchZoomOverlay(zoomPercentage: Int) {
+                showZoomOverlay = true
+            }
+
+            override fun hidePinchZoomOverlay() {
+                showZoomOverlay = false
+            }
+
+            override fun scheduleTimer(delayMs: Long, action: () -> Unit): Any {
+                return coroutineScope.launch {
+                    delay(delayMs)
+                    action()
+                }
+            }
+
+            override fun cancelTimer(timerId: Any?) {
+                (timerId as? Job)?.cancel()
+            }
+
+            override fun triggerSingleTapAction() {
+                onToggleControls()
+            }
         }
     }
 
-    LaunchedEffect(brightnessHideTrigger, isBrightnessDragging) {
-        if (isBrightnessDragging) {
-            showBrightnessIndicator = true
-        } else if (brightnessHideTrigger > 0) {
-            showBrightnessIndicator = true
-            delay(700L)
-            showBrightnessIndicator = false
-        }
-    }
+    val stateMachine = remember(controller) { MpvGestureStateMachine(controller) }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    fun resolveSeekMs(count: Int): Long = when {
-        count >= 6 -> 60_000L
-        count == 5 -> 50_000L
-        count == 4 -> 40_000L
-        count == 3 -> 30_000L
-        count == 2 -> 20_000L
-        else       -> 10_000L
-    }
-
-    fun handleForward() {
-        if (lastTapSide != "forward") {
-            tapCount    = 0
-            lastTapSide = "forward"
-        }
-        tapCount++
-        val seekMs = resolveSeekMs(tapCount)
-        seekLabel     = "+${seekMs / 1000}s"
-        seekDirection = SeekDirection.Forward
-        labelTrigger++
-        onSeekForward(seekMs)
-    }
-
-    fun handleBackward() {
-        if (lastTapSide != "backward") {
-            tapCount    = 0
-            lastTapSide = "backward"
-        }
-        tapCount++
-        val seekMs = resolveSeekMs(tapCount)
-        seekLabel     = "-${seekMs / 1000}s"
-        seekDirection = SeekDirection.Backward
-        labelTrigger++
-        onSeekBackward(seekMs)
-    }
-
-    // ── Layout ───────────────────────────────────────────────────────────────
     Box(
         modifier = modifier
             .fillMaxSize()
-            .gestureCoordinator(
-                audioManager = audioManager,
-                currentPositionMs = currentPositionMs,
-                durationMs = durationMs,
-                currentZoom = localZoom,
-                initialBrightness = currentBrightness,
-                listener = object : PlayerGestureListener {
-                    override fun onVolumeChange(percentage: Int) {
-                        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                        val newVol = kotlin.math.round((percentage / 100f) * maxVol).toInt().coerceIn(0, maxVol)
-                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0)
-                        onVolumeChange(percentage)
-                    }
-                    override fun onVolumeDragStart() { isVolumeDragging = true }
-                    override fun onVolumeDragEnd() {
-                        isVolumeDragging = false
-                        volumeHideTrigger++
-                    }
+            .onSizeChanged {
+                if (it.width > 0) screenWidthPx = it.width.toFloat()
+                if (it.height > 0) screenHeightPx = it.height.toFloat()
+            }
+            .pointerInput(stateMachine) {
+                awaitEachGesture {
+                    val downEvent = awaitFirstDown(requireUnconsumed = false)
+                    val density = this.density
 
-                    override fun onBrightnessUpdate(brightness: Float) {
-                        currentBrightness = brightness
-                        onBrightnessChange(brightness)
-                    }
-                    override fun onBrightnessDragStart() { isBrightnessDragging = true }
-                    override fun onBrightnessDragEnd() {
-                        isBrightnessDragging = false
-                        brightnessHideTrigger++
-                    }
+                    stateMachine.onPointerDown(
+                        pointerId = downEvent.id.value,
+                        x = downEvent.position.x,
+                        y = downEvent.position.y,
+                        timeMs = downEvent.uptimeMillis,
+                        activePointerCount = 1,
+                        panelShown = PanelShown.NONE,
+                        density = density
+                    )
 
-                    override fun onZoomUpdate(zoom: Float) {
-                        localZoom = zoom
-                        onZoomChange(zoom)
-                    }
-                    override fun onZoomStart() { isZooming = true }
-                    override fun onZoomEnd() {
-                        isZooming = false
-                        zoomTrigger++
-                    }
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val changes = event.changes
+                        val activeCount = changes.count { it.pressed }
+                        val firstPressed = changes.firstOrNull { it.pressed }
 
-                    override fun onSeekPreview(positionMs: Long, deltaMs: Long) {
-                        previewPositionMs = positionMs
-                        previewDeltaMs = deltaMs
-                        showHorizontalSeekIndicator = true
-                        onSeekPreview(positionMs, deltaMs)
-                    }
-                    override fun onSeekStart() {
-                        wasPlayingBeforeScrub = isPlaying
-                        if (isPlaying) onPauseForScrub()
-                        showHorizontalSeekIndicator = true
-                    }
-                    override fun onSeekCommit(positionMs: Long) = onSeekCommit(positionMs)
-                    override fun onSeekEnd() {
-                        if (wasPlayingBeforeScrub) onResumeAfterScrub()
-                        horizontalSeekTrigger++
-                    }
+                        if (firstPressed == null || activeCount == 0) {
+                            val lastEvent = changes.firstOrNull() ?: downEvent
+                            stateMachine.onPointerUp(
+                                pointerId = lastEvent.id.value,
+                                x = lastEvent.position.x,
+                                y = lastEvent.position.y,
+                                timeMs = lastEvent.uptimeMillis,
+                                activePointerCount = 0
+                            )
+                            break
+                        }
 
-                    override fun onSeekForward() = handleForward()
-                    override fun onSeekBackward() = handleBackward()
-                    override fun onContinueSeek(isRightHalf: Boolean) {
-                        if (isRightHalf) handleForward() else handleBackward()
-                    }
+                        var span = 0f
+                        var midX = firstPressed.position.x
+                        var midY = firstPressed.position.y
+                        if (activeCount >= 2) {
+                            val pressedChanges = changes.filter { it.pressed }
+                            if (pressedChanges.size >= 2) {
+                                val p0 = pressedChanges[0].position
+                                val p1 = pressedChanges[1].position
+                                val dx = p0.x - p1.x
+                                val dy = p0.y - p1.y
+                                span = sqrt(dx * dx + dy * dy)
+                                midX = (p0.x + p1.x) / 2f
+                                midY = (p0.y + p1.y) / 2f
+                            }
+                        }
 
-                    override fun onToggleControls() = onToggleControls()
-                    override fun onLongPressStart() { isLongPressing = true }
-                    override fun onLongPressEnd() { isLongPressing = false }
-                    override fun onSpeedOverride(speed: Float) = onSpeedOverride(speed)
-                    override fun onSpeedRestore() = onSpeedRestore()
+                        stateMachine.onPointerMove(
+                            pointerId = firstPressed.id.value,
+                            x = firstPressed.position.x,
+                            y = firstPressed.position.y,
+                            timeMs = firstPressed.uptimeMillis,
+                            activePointerCount = activeCount,
+                            panelShown = PanelShown.NONE,
+                            density = density,
+                            span = span,
+                            midpointX = midX,
+                            midpointY = midY
+                        )
+                        changes.forEach { it.consume() }
+                    }
                 }
-            )
+            }
     ) {
-        GestureOverlay(
-            showSeekIndicator = showSeekIndicator,
-            seekDirection = seekDirection,
-            seekLabel = seekLabel,
-            showZoomIndicator = showZoomIndicator,
-            localZoom = localZoom,
-            showVolumeIndicator = showVolumeIndicator,
-            volumePercentage = volumePercentage,
-            showBrightnessIndicator = showBrightnessIndicator,
-            currentBrightness = currentBrightness,
-            showHorizontalSeekIndicator = showHorizontalSeekIndicator,
-            previewPositionMs = previewPositionMs,
-            previewDeltaMs = previewDeltaMs,
-            isLongPressing = isLongPressing
-        )
+        if (showDoubleTapOverlay) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 64.dp),
+                contentAlignment = if (doubleTapForward) Alignment.CenterEnd else Alignment.CenterStart
+            ) {
+                SeekCircleIndicator(label = doubleTapLabel, isForward = doubleTapForward)
+            }
+        }
+        if (showHSeekOverlay) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                HorizontalSeekIndicator(currentTimeLabel = hSeekCurrentLabel, deltaLabel = hSeekDeltaLabel)
+            }
+        }
+        if (showSpeedOverlay) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 48.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                SpeedIndicator(label = "${speedValue}× Speed")
+            }
+        }
+        if (showVolOverlay) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                VolumeIndicator(percentage = volPercentageDisplay)
+            }
+        }
+        if (showBrightOverlay) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                BrightnessIndicator(brightness = brightPercentageDisplay / 100f)
+            }
+        }
+        if (showZoomOverlay) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                PinchZoomIndicator(zoom = localZoomLog2)
+            }
+        }
     }
 }

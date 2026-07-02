@@ -18,7 +18,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-
+/**
+ * Pure UI — horizontal swipe-to-seek indicator.
+ * ("Current time" + "delta" pill, e.g. "12:34   +00:10")
+ *
+ * WHAT DRIVES IT: caller passes two pre-formatted strings.
+ *   currentTimeLabel -> the resulting/preview playback position, e.g. "12:34"
+ *   deltaLabel       -> the signed offset from where the swipe started, e.g. "+00:10"
+ * Formatting (sign, mm:ss) is the caller's job — this just lays out two texts.
+ * No swipe/drag detection here.
+ *
+ * Example call site (you own the state + formatting):
+ *   val sign = if (deltaMs >= 0) "+" else "-"
+ *   HorizontalSeekIndicator(
+ *       currentTimeLabel = formatMs(previewPositionMs),
+ *       deltaLabel = "$sign${formatMs(abs(deltaMs))}"
+ *   )
+ */
 @Composable
 fun HorizontalSeekIndicator(currentTimeLabel: String, deltaLabel: String) {
     Box(
@@ -49,4 +65,3 @@ fun HorizontalSeekIndicator(currentTimeLabel: String, deltaLabel: String) {
         }
     }
 }
-

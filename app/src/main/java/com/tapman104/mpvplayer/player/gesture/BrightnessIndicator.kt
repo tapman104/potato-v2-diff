@@ -1,15 +1,10 @@
 package com.tapman104.mpvplayer.player.gesture
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.BrightnessLow
@@ -19,14 +14,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
-
+/**
+ * Pure UI — vertical brightness drag indicator.
+ *
+ * WHAT DRIVES IT: caller passes brightness as a 0f..1f fraction.
+ * The icon swaps low/medium/high at the 33% / 66% thresholds.
+ * No gesture code here — just render whatever value you have.
+ *
+ * Example call site (you own the state):
+ *   var brightness by remember { mutableFloatStateOf(0.5f) }
+ *   BrightnessIndicator(brightness = brightness)
+ */
 @Composable
 fun BrightnessIndicator(brightness: Float) {
     val percentage = (brightness * 100).roundToInt()
@@ -36,17 +40,7 @@ fun BrightnessIndicator(brightness: Float) {
         else -> Icons.Filled.BrightnessHigh
     }
 
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(28.dp))
-            .background(Color(0xFF1E1E1E).copy(alpha = 0.92f))
-            .border(
-                width = 1.dp,
-                color = Color(0xFF8B5CF6).copy(alpha = 0.5f),
-                shape = RoundedCornerShape(28.dp)
-            )
-            .padding(horizontal = 16.dp, vertical = 20.dp)
-    ) {
+    IndicatorPill {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
